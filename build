@@ -1,0 +1,1 @@
+kotlinc src/burp/*.kt src/TargetLockOn.kt -include-runtime -d TargetLockOn.jar
