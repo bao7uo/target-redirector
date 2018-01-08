@@ -1,7 +1,7 @@
 /*
 
 #
-#   TargetLockOn Burp extension
+#   Target Redirector Burp extension
 #
 #   Copyright (C) 2017 Paul Taylor
 #
@@ -35,14 +35,14 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextField
 
-class LockOn {
+class Redirector {
     companion object {
         var original = ""
         var replacement = ""
         fun update(data_source: UI) {
             original = data_source.text_left.text
             replacement = data_source.text_right.text
-            PrintWriter(data_source.callbacks.stdout, true).println("Locked-On. Will replace: ${original} With: ${replacement}")
+            PrintWriter(data_source.callbacks.stdout, true).println("Redirection Activated. Will replace: ${original} With: ${replacement}")
         }
     }
 }
@@ -55,7 +55,7 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
     val subpanel_upper = JPanel()
     val subpanel_lower = JPanel()
 
-    val button = JButton("Lock-On!")
+    val button = JButton("Activate Redirection")
 
     val textpanel_left = JPanel()
     val label_left = JLabel("Look for:")
@@ -64,11 +64,11 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
     val label_right = JLabel("Replace with:")
     val text_right = JTextField(20)
 
-    override val tabCaption = "TargetLockOn"
+    override val tabCaption = "Target Redirector"
     override val uiComponent = mainpanel
 
     fun button_pressed(e: ActionEvent) {
-        LockOn.update(this)
+        Redirector.update(this)
     }
 
     init {
@@ -127,17 +127,17 @@ class HttpListener(val callbacks: IBurpExtenderCallbacks) : IHttpListener {
         var stdout = PrintWriter(callbacks.stdout, true)
 
         if (messageIsRequest) {
-            stdout.println("Searching for: ${LockOn.original}")
+            stdout.println("Searching for: ${Redirector.original}")
             stdout.println("Incoming request to: ${messageInfo.httpService.host}")
-            if (messageInfo.httpService.host == LockOn.original) {
+            if (messageInfo.httpService.host == Redirector.original) {
                 messageInfo.httpService = callbacks.helpers.buildHttpService(
-                        LockOn.replacement,
+                        Redirector.replacement,
                         messageInfo.httpService.port,
                         messageInfo.httpService.protocol
                 )
-                stdout.println("Target changed from ${LockOn.original} to ${LockOn.replacement}")
+                stdout.println("Target changed from ${Redirector.original} to ${Redirector.replacement}")
             } else {
-                stdout.println("Target not changed to ${LockOn.replacement}")
+                stdout.println("Target not changed to ${Redirector.replacement}")
             }
         } else {
             stdout.println("Incoming response from: ${messageInfo.httpService.host}")
@@ -155,7 +155,7 @@ class BurpExtender : IBurpExtender {
         val httplistener = HttpListener(callbacks)
         val tab = UI(callbacks)
 
-        callbacks.setExtensionName("TargetLockOn")
+        callbacks.setExtensionName("Target Redirector")
 
         callbacks.registerHttpListener(httplistener)
 

@@ -1,1 +1,1 @@
-kotlinc src/burp/*.kt src/TargetLockOn.kt -include-runtime -d TargetLockOn.jar
+kotlinc src/burp/*.kt src/TargetRedirector.kt -include-runtime -d TargetRedirector.jar

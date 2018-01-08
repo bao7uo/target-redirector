@@ -1,9 +1,9 @@
-# TargetLockOn
-TargetLockOn is a Burp Suite Extension which allows you to "Lock-On" to a particular target, by replacing an incorrect target hostname/IP with the intended one.
+# Target Redirector
+Target Redirector is a Burp Suite Extension which allows you to redirect requests to a particular target by replacing an incorrect target hostname/IP with the intended one.
 
 ## Overview
 
-![TargetLockOn screenshot](https://github.com/bao7uo/TargetLockOn/raw/master/images/title_screenshot.png)
+![Target Redirector screenshot](https://github.com/bao7uo/TargetRedirector/raw/master/images/title_screenshot.png)
 
 This plugin can be very useful in various situations where you want to force a particular target IP or hostname to be used. For example:
 
@@ -15,7 +15,7 @@ This plugin can be very useful in various situations where you want to force a p
 
 This project is written entirely in Kotlin, including the Burp API, and requires Kotlin compiler to build. On Linux, use the following command.
 
-`kotlinc src/burp/*.kt src/TargetLockOn.kt -include-runtime -d TargetLockOn.jar`
+`kotlinc src/burp/*.kt src/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
 
 See the following page from my other repo which has further details about the Burp API and Kotlin.
 
@@ -25,7 +25,7 @@ See the following page from my other repo which has further details about the Bu
 
 This extension is simple and intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/IP specified in the left-hand textbox. If this hostname/IP is found, the extension will replace it with the hostname/IP specified in the right-hand textbox. Status updates are logged in the extension's stdout on Burp's Extender tab.
 
-## TargetLockOn Roadmap
+## Target Redirector Roadmap
 
 This project is still under development.
 
