@@ -17,6 +17,10 @@ This project is written entirely in Kotlin, including the Burp API, and requires
 
 `kotlinc src/burp/*.kt src/TargetLockOn.kt -include-runtime -d TargetLockOn.jar`
 
+## Use
+
+This extension is quite intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/IP specified in the left-hand textbox. If this hostname/IP is found, the extension will replace it with the hostname/IP specified in the right-hand textbox.
+
 ## TargetLockOn Roadmap
 
 This project is still under development.
@@ -27,7 +31,9 @@ This project is still under development.
 
 #### Potential future features:
 - Regex matching for search term
-- Support for replacing with a different port
+- Replacing port as well as hostname
+- Create session handling actions so that multiple search terms can be used with multiple session handling rules
+- Remember/clear history / session handling rules
 
 ## Contribute
 Contributions, feedback and ideas will be appreciated.
