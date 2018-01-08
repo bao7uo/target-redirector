@@ -72,41 +72,41 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
     }
 
     init {
-        this.mainpanel.layout = BoxLayout(this.mainpanel, BoxLayout.Y_AXIS)
-        this.mainpanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        mainpanel.layout = BoxLayout(mainpanel, BoxLayout.Y_AXIS)
+        mainpanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
 
-        this.mainpanel.add(this.innerpanel)
-        this.mainpanel.add(Box.createVerticalGlue())
+        mainpanel.add(innerpanel)
+        mainpanel.add(Box.createVerticalGlue())
 
-        this.innerpanel.layout = BoxLayout(this.innerpanel, BoxLayout.Y_AXIS)
+        innerpanel.layout = BoxLayout(innerpanel, BoxLayout.Y_AXIS)
 
-        this.innerpanel.add(this.subpanel_upper)
-        this.innerpanel.add(this.subpanel_lower)
+        innerpanel.add(subpanel_upper)
+        innerpanel.add(subpanel_lower)
 
-        this.subpanel_upper.border = BorderFactory.createTitledBorder("Replaces matched target hostname/IP in all HTTP requests")
+        subpanel_upper.border = BorderFactory.createTitledBorder("Replaces matched target hostname/IP in all HTTP requests")
 
-        this.subpanel_upper.add(this.textpanel_left)
-        this.subpanel_upper.add(this.textpanel_right)
+        subpanel_upper.add(textpanel_left)
+        subpanel_upper.add(textpanel_right)
 
-        this.textpanel_left.add(this.label_left)
-        this.textpanel_left.add(this.text_left)
+        textpanel_left.add(label_left)
+        textpanel_left.add(text_left)
 
-        this.textpanel_right.add(this.label_right)
-        this.textpanel_right.add(this.text_right)
+        textpanel_right.add(label_right)
+        textpanel_right.add(text_right)
 
-        this.subpanel_lower.layout = BoxLayout(this.subpanel_lower, BoxLayout.X_AXIS)
+        subpanel_lower.layout = BoxLayout(subpanel_lower, BoxLayout.X_AXIS)
 
-        this.subpanel_lower.add(Box.createHorizontalGlue())
-        this.subpanel_lower.add(this.button)
+        subpanel_lower.add(Box.createHorizontalGlue())
+        subpanel_lower.add(button)
 
-        this.textpanel_left.maximumSize = this.textpanel_left.preferredSize
-        this.textpanel_right.maximumSize = this.textpanel_right.preferredSize
-        this.subpanel_upper.maximumSize = this.subpanel_upper.preferredSize
-        this.subpanel_lower.maximumSize = this.subpanel_lower.preferredSize
-        this.innerpanel.maximumSize = this.innerpanel.preferredSize
-        this.mainpanel.maximumSize = this.mainpanel.preferredSize
+        textpanel_left.maximumSize = textpanel_left.preferredSize
+        textpanel_right.maximumSize = textpanel_right.preferredSize
+        subpanel_upper.maximumSize = subpanel_upper.preferredSize
+        subpanel_lower.maximumSize = subpanel_lower.preferredSize
+        innerpanel.maximumSize = innerpanel.preferredSize
+        mainpanel.maximumSize = mainpanel.preferredSize
 
-        this.button.addActionListener(
+        button.addActionListener(
                 object : ActionListener {
                     override fun actionPerformed(e: ActionEvent) {
                         button_pressed(e)
