@@ -21,9 +21,9 @@ See the following page from my other repo which has further details about the Bu
 
 - https://github.com/bao7uo/burp-extender-api-kotlin/blob/master/README.md
 
-## Use
+## Usage
 
-This extension is quite intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/IP specified in the left-hand textbox. If this hostname/IP is found, the extension will replace it with the hostname/IP specified in the right-hand textbox.
+This extension is simple and intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/IP specified in the left-hand textbox. If this hostname/IP is found, the extension will replace it with the hostname/IP specified in the right-hand textbox. Status updates are logged in the extension's stdout on Burp's Extender tab.
 
 ## TargetLockOn Roadmap
 
