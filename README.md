@@ -1,5 +1,5 @@
 # Target Redirector
-[![license](https://img.shields.io/github/license/mashape/apistatus.svg)]()
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Target Redirector is a Burp Suite Extension which allows you to redirect requests to a particular target by replacing an incorrect target hostname/IP with the intended one. The request HTTP headers and body are unaffected, only the actual connection target itself is replaced.
 
