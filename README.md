@@ -23,7 +23,7 @@ See the following page from my other repo which has further details about the Bu
 
 Use the following command which has been tested successfully on both Windows and Linux.
 
-`kotlinc src/burp/*.kt src/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
+`kotlinc src/main/kotlin/burp/*.kt src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
 
 ## Usage
 
