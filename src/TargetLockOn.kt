@@ -42,7 +42,7 @@ class LockOn {
         fun update(data_source: UI) {
             original = data_source.text_left.text
             replacement = data_source.text_right.text
-            PrintWriter(data_source.callbacks.stdout, true).println("Updated setting. Will replace: ${original} With: ${replacement}")
+            PrintWriter(data_source.callbacks.stdout, true).println("Locked-On. Will replace: ${original} With: ${replacement}")
         }
     }
 }
@@ -55,7 +55,7 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
     val subpanel_upper = JPanel()
     val subpanel_lower = JPanel()
 
-    val button = JButton("Apply settings")
+    val button = JButton("Lock-On!")
 
     val textpanel_left = JPanel()
     val label_left = JLabel("Look for:")
@@ -162,7 +162,7 @@ class BurpExtender : IBurpExtender {
         callbacks.customizeUiComponent(tab.mainpanel)
         callbacks.addSuiteTab(tab)
 
-        stdout.println("Loaded")
+        stdout.println("Extension Loaded")
     }
 
 }
