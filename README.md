@@ -1,6 +1,6 @@
 # Target Redirector
-[![Language](https://img.shields.io/badge/Lang-Kotlin-orange.svg)](https://kotlinlang.org)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Language](https://img.shields.io/badge/Lang-Kotlin-blue.svg)](https://kotlinlang.org)
+[![License](https://img.shields.io/badge/License-Apache%202.0-red.svg)](https://opensource.org/licenses/Apache-2.0)
 
 Target Redirector is a Burp Suite Extension which allows you to redirect requests to a particular target by replacing an incorrect target hostname/IP with the intended one. The request HTTP headers and body are unaffected, only the actual connection target itself is replaced.
 
