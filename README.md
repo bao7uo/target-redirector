@@ -5,9 +5,11 @@ TargetLockOn is a Burp Suite Extension which allows you to "Lock-On" to a partic
 
 ![TargetLockOn screenshot](https://github.com/bao7uo/TargetLockOn/raw/master/images/title_screenshot.png)
 
-This plugin can be very useful in various situations, including where you want to ensure that a particular IP target is specified, where the DNS may resolve to various IP addresses, and you do not want to "fix" DNS using hosts file or similar.
+This plugin can be very useful in various situations where you want to force a particular target IP or hostname to be used. For example:
 
-Also, if a staging/test environment is being tested which is full of references to the production environment, then you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the correct targets are scanned.
+- testing a staging/pre-production environment which is full of references to the production environment. you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned
+- web application is protected by third-party ddos protection/load balancers which serve the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
+- hostname resolving to multiple IP addresses, but you can only test one IP, and you do not want to the "fix" DNS using hosts file or similar
 
 ## Build
 
