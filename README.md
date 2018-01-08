@@ -19,7 +19,7 @@ This project is written entirely in Kotlin, including the Burp API, and requires
 
 See the following page from my other repo which has further details about the Burp API and Kotlin.
 
-https://github.com/bao7uo/burp-extender-api-kotlin/blob/master/README.md
+- https://github.com/bao7uo/burp-extender-api-kotlin/blob/master/README.md
 
 ## Use
 
