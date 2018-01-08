@@ -11,7 +11,7 @@ Also, if a staging/test environment is being tested which is full of references 
 
 ## Build
 
-This project requires kotlin to build. On Linux, use the following command.
+This project is written entirely in Kotlin, including the Burp API, and requires Kotlin compiler to build. On Linux, use the following command.
 
 `kotlinc src/burp/*.kt src/TargetLockOn.kt -include-runtime -d TargetLockOn.jar`
 
