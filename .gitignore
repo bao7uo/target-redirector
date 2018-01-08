@@ -2,7 +2,7 @@ build/
 *.swp
 .classpath
 .gradle/
-.idea/workspace.xml
+.idea/
 .project
 .settings/
 .vscode/
