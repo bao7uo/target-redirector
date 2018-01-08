@@ -33,7 +33,7 @@ This project is still under development.
 - Regex matching for search term
 - Replacing port as well as hostname
 - Create session handling actions so that multiple search terms can be used with multiple session handling rules
-- Remember/clear history / session handling rules
+- Remember/clear history
 
 ## Contribute
 Contributions, feedback and ideas will be appreciated.
