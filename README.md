@@ -51,6 +51,6 @@ Contributions, feedback and ideas will be appreciated.
 
 ## License notice
 
-Copyright (C) 2017 Paul Taylor
+Copyright (C) 2016-2018 Paul Taylor
 
 See LICENSE file for details.
