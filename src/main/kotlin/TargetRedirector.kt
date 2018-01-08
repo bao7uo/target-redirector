@@ -3,7 +3,7 @@
 #
 #   Target Redirector Burp extension
 #
-#   Copyright (C) 2017 Paul Taylor
+#   Copyright (C) 2016-2018 Paul Taylor
 #
 
 # Licensed under the Apache License, Version 2.0 (the "License");
