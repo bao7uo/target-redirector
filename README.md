@@ -17,6 +17,10 @@ This project is written entirely in Kotlin, including the Burp API, and requires
 
 `kotlinc src/burp/*.kt src/TargetLockOn.kt -include-runtime -d TargetLockOn.jar`
 
+See the following page from my other repo which has further details about the Burp API and Kotlin.
+
+https://github.com/bao7uo/burp-extender-api-kotlin/blob/master/README.md
+
 ## Use
 
 This extension is quite intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/IP specified in the left-hand textbox. If this hostname/IP is found, the extension will replace it with the hostname/IP specified in the right-hand textbox.
