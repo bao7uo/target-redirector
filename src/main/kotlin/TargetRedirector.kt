@@ -34,6 +34,7 @@ import javax.swing.JButton
 import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextField
+import javax.swing.JComponent
 
 class Redirector {
     companion object {
@@ -64,12 +65,13 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
     val label_right = JLabel("Replace with:")
     val text_right = JTextField(20)
 
-    override val tabCaption = "Target Redirector"
-    override val uiComponent = mainpanel
-
     fun button_pressed(e: ActionEvent) {
         Redirector.update(this)
     }
+    
+    override public fun getTabCaption() = "Target Redirector"
+
+    override public fun getUiComponent() = mainpanel
 
     init {
         mainpanel.layout = BoxLayout(mainpanel, BoxLayout.Y_AXIS)
