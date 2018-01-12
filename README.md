@@ -20,7 +20,7 @@ This project is written in Kotlin, although is currently built with the regular 
 
 To build, use the following command which has been tested successfully on both Windows and Linux.
 
-- `kotlinc -classpath burp-extender-api-1.7.22.jar src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
+- `kotlinc -classpath burp-extender-api-1.7.22.jar src/main/kotlin/target-redirector.kt -include-runtime -d target-redirector.jar`
 
 The project can be built against a Kotlin version of the Burp API. See the following page from my other repo which has further details about the Burp API and Kotlin.
 
@@ -28,7 +28,7 @@ The project can be built against a Kotlin version of the Burp API. See the follo
 
 To build with the Kotlin Burp API, place the API kt source files in the `src/main/kotlin/burp directory` and build with the following command.
 
-- `kotlinc src/main/kotlin/burp/*.kt src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
+- `kotlinc src/main/kotlin/burp/*.kt src/main/kotlin/target-redirector.kt -include-runtime -d target-redirector.jar`
 
 ## Usage
 
