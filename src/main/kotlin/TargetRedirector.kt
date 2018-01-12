@@ -64,12 +64,13 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
     val label_right = JLabel("Replace with:")
     val text_right = JTextField(20)
 
-    override val tabCaption = "Target Redirector"
-    override val uiComponent = mainpanel
-
     fun button_pressed(e: ActionEvent) {
         Redirector.update(this)
     }
+    
+    override public fun getTabCaption() = "Target Redirector"
+
+    override public fun getUiComponent() = mainpanel
 
     init {
         mainpanel.layout = BoxLayout(mainpanel, BoxLayout.Y_AXIS)

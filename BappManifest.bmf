@@ -1,0 +1,12 @@
+Uuid: d938ed20acbe4cd9889aa06bd23ba7e1
+ExtensionType: 1
+Name: target-redirector
+RepoName: target-redirector
+ScreenVersion: TODO
+SerialVersion: 0
+MinPlatformVersion: 0
+ProOnly: False
+Author: TODO
+ShortDescription: TODO
+EntryPoint: build/libs/target-redirector-all.jar
+BuildCommand: gradle fatJar
