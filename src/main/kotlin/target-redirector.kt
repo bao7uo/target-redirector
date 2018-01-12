@@ -163,7 +163,7 @@ class BurpExtender : IBurpExtender {
         callbacks.customizeUiComponent(tab.mainpanel)
         callbacks.addSuiteTab(tab)
 
-        stdout.println("Extension Loaded")
+        stdout.println("Target Redirector extension loaded")
     }
 
 }
