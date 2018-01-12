@@ -6,7 +6,7 @@ ScreenVersion: TODO
 SerialVersion: 0
 MinPlatformVersion: 0
 ProOnly: False
-Author: TODO
+Author: Paul Taylor, Foregenix Ltd
 ShortDescription: TODO
 EntryPoint: build/libs/target-redirector-all.jar
 BuildCommand: gradle fatJar
