@@ -6,7 +6,7 @@ Target Redirector is a Burp Suite Extension which allows you to redirect request
 
 ## Overview
 
-![Target Redirector screenshot](https://github.com/bao7uo/TargetRedirector/raw/master/images/title_screenshot.png)
+![Target Redirector screenshot](images/title_screenshot.png)
 
 This plugin is useful in various situations where you want to force a particular target IP or hostname to be used. For example:
 
@@ -14,19 +14,21 @@ This plugin is useful in various situations where you want to force a particular
 - web application is protected by third-party ddos protection/load balancers which serve the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
 - hostname resolving to multiple IP addresses, but you can only test one IP, and you do not want to the "fix" DNS using hosts file or similar
 
-## Requirements
+## Build / Requirements
 
-This project is written entirely in Kotlin, including the Burp API, and requires Kotlin compiler (tested with kotlinc-jvm 1.2.10) to build.
+This project is written in Kotlin, although is currently built with the regular Java Burp API. Building from source requires the Kotlin compiler (tested with kotlinc-jvm 1.2.10).
 
-See the following page from my other repo which has further details about the Burp API and Kotlin.
+To build, use the following command which has been tested successfully on both Windows and Linux.
+
+- `kotlinc -classpath burp-extender-api-1.7.22.jar src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
+
+The project can be built against a Kotlin version of the Burp API. See the following page from my other repo which has further details about the Burp API and Kotlin.
 
 - https://github.com/bao7uo/burp-extender-api-kotlin/blob/master/README.md
 
-## Build
+To build with the Kotlin Burp API, place the API kt source files in the `src/main/kotlin/burp directory` and build with the following command.
 
-Use the following command which has been tested successfully on both Windows and Linux.
-
-`kotlinc src/main/kotlin/burp/*.kt src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
+- `kotlinc src/main/kotlin/burp/*.kt src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
 
 ## Usage
 
