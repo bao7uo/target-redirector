@@ -43,10 +43,11 @@ This project is still under development.
 - Exception handling
 
 #### Potential future features:
-- Regex matching for search term
 - Replacing port as well as hostname
-- Create session handling actions so that multiple search terms can be used with multiple session handling rules
-- Remember/clear history
+- Regex matching for search term
+- Multiple search terms/redirections
+- Session handling actions
+- History, monitoring, loggins
 
 ## Contribute
 Contributions, feedback and ideas will be appreciated.
