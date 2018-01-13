@@ -1,4 +1,4 @@
-# Target Redirector
+# Target Redirector - A Burp Suite Extension
 [![Language](https://img.shields.io/badge/Lang-Kotlin-blue.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-red.svg)](https://opensource.org/licenses/Apache-2.0)
 
@@ -40,14 +40,17 @@ This project is still under development.
 
 #### Potential future improvements:
 - Improve UI
-- Exception handling
+- More exception handling
+- Source code optimisation
 
 #### Potential future features:
-- Replacing port as well as hostname
-- Regex matching for search term
-- Multiple search terms/redirections
-- Session handling actions
-- History, monitoring, loggins
+- [x] Hostname resolution for invalid hostnames
+- [x] Replacing port as well as hostname
+- [ ] Host header
+- [ ] Regex matching for search term
+- [ ] Multiple search terms/redirections
+- [ ] Session handling actions
+- [ ] History, monitoring, logging
 
 ## Contribute
 Contributions, feedback and ideas will be appreciated.
