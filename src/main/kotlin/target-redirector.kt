@@ -27,6 +27,8 @@ import java.awt.event.ActionListener
 
 import java.io.PrintWriter
 
+import java.net.InetAddress
+
 import javax.swing.BorderFactory
 import javax.swing.Box
 import javax.swing.BoxLayout
@@ -35,8 +37,11 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextField
 import javax.swing.JCheckBox
+import javax.swing.JOptionPane
+
 
 class Redirector {
+
     companion object {
         var original_host = ""
         var replacement_host = ""
@@ -45,22 +50,102 @@ class Redirector {
         var original_protocol = ""
         var replacement_protocol = ""
 
+        var json_backup = ""
+
+        fun original() = "${original_protocol}://${original_host}:${original_port}"
+        fun replacement() = "${replacement_protocol}://${replacement_host}:${replacement_port}"
+
+        fun stop(data_source: UI) {
+            data_source.button.text = "Activate redirection"
+            original_port = "ZZZZ"
+            replacement_port = "ZZZZ"
+            data_source.cbox_dns_required.setSelected(false)
+            if (json_backup != "") {
+                data_source.callbacks.loadConfigFromJson(json_backup)
+                json_backup = ""
+            }
+        }
+
         fun update(data_source: UI) {
-            original_host = data_source.text_host_original.text
-            replacement_host = data_source.text_host_replacement.text
-            original_port = data_source.text_port_original.text
-            replacement_port = data_source.text_port_replacement.text
-            original_protocol = if (data_source.cbox_https_original.isSelected()) "https" else "http"
-            replacement_protocol = if (data_source.cbox_https_replacement.isSelected()) "https" else "http"
-            PrintWriter(
-                    data_source.callbacks.stdout,
-                    true
-            ).println(
-                    "Redirection Activated. Will replace: ${original_host}:${original_port}/${original_protocol} With: ${replacement_host}:${replacement_port}/${replacement_protocol}"
-            )
+
+            var stdout = PrintWriter(
+                                data_source.callbacks.stdout,
+                                true
+                            )
+
+            val _original_host = data_source.text_host_original.text
+            val _replacement_host = data_source.text_host_replacement.text
+            val _original_port = data_source.text_port_original.text
+            val _replacement_port = data_source.text_port_replacement.text
+            val _original_protocol = if (data_source.cbox_https_original.isSelected()) "https" else "http"
+            val _replacement_protocol = if (data_source.cbox_https_replacement.isSelected()) "https" else "http"
+
+            fun getbyname(name: String): Boolean {
+                try {
+                    InetAddress.getByName(name)
+                    return true
+                }
+                catch (UnknownHostException: Exception) {
+                    stdout.println("Hostname/IP \"${name}\" appears to be invalid.")
+                    return false
+                }
+            }
+
+            fun notification(text: String) {
+                JOptionPane.showMessageDialog(data_source.mainpanel, text, "Burp / Target Redirector", JOptionPane.WARNING_MESSAGE)
+                stdout.println(text) 
+            }
+
+            if (
+                _original_host != "" &&
+                _original_port.toIntOrNull() != null &&
+                _replacement_host != "" &&
+                _replacement_port.toIntOrNull() != null &&
+                getbyname(_replacement_host)
+                ) {
+                    if (!getbyname(_original_host)) {
+                        notification("Original hostname \"${_original_host}\" appears to be invalid.\n\n" +
+                            "Target Redirector will add an entry to\nProject options / Hostname Resolution\n" +
+                            "to allow Burp to send requests with an\n" +
+                            "invalid hostname via this extension.")
+
+                        var json_config = data_source.callbacks.saveConfigAsJson(
+                            "project_options.connections.hostname_resolution"
+                        )
+
+                        json_backup = json_config
+
+                        var json_snippet = "{\"enabled\":true,\"hostname\":\"" +
+                                            _original_host +
+                                            "\",\"ip_address\":\"127.0.0.1\"}" +
+                                            if (json_config.indexOf("ip_address") >= 0) "," else ""
+                        json_config = json_config.substring(0, 89) + json_snippet + json_config.substring(89, json_config.length)
+                        data_source.callbacks.loadConfigFromJson(json_config)
+
+                        data_source.cbox_dns_required.setSelected(true)
+                    } else {
+                        data_source.cbox_dns_required.setSelected(false)
+                    }
+
+                    original_host = _original_host
+                    replacement_host = _replacement_host
+                    original_port = _original_port
+                    replacement_port = _replacement_port
+                    original_protocol = _original_protocol
+                    replacement_protocol = _replacement_protocol
+
+                    notification(
+                        "Redirection Activated.\nTarget Redirector is now\nredirecting requests for:\n${original()}\nto:\n${replacement()}"
+                    )
+
+                    data_source.button.text = "Remove redirection"
+            } else {
+                    notification("Invalid hostname and/or port settings.")
+            }
         }
     }
 }
+
 
 class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
 
@@ -91,10 +176,11 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
     val textpanel_options = JPanel()
 
     val cbox_hostheader = JCheckBox("Also replace HTTP host header")
-    val cbox_dns_required = JCheckBox("Fix DNS for original host")
+    val cbox_dns_required = JCheckBox("Invalid original hostname DNS correction")
 
     fun button_pressed(e: ActionEvent) {
-        Redirector.update(this)
+        if (button.text != "Remove redirection") Redirector.update(this)
+        else Redirector.stop(this)
     }
     
     override public fun getTabCaption() = "Target Redirector"
@@ -113,7 +199,7 @@ class UI(val callbacks: IBurpExtenderCallbacks) : ITab {
         innerpanel.add(subpanel_upper)
         innerpanel.add(subpanel_lower)
 
-        subpanel_upper.border = BorderFactory.createTitledBorder("Redirect ALL connections")
+        subpanel_upper.border = BorderFactory.createTitledBorder("Redirect all Burp connections")
         subpanel_upper.layout = BoxLayout(subpanel_upper, BoxLayout.Y_AXIS)
 
         subpanel_upper.add(textpanel_original)
@@ -170,11 +256,12 @@ class HttpListener(val callbacks: IBurpExtenderCallbacks) : IHttpListener {
             messageInfo: IHttpRequestResponse
     ) {
         var stdout = PrintWriter(callbacks.stdout, true)
+        val current = "${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port.toString()}"
 
         if (messageIsRequest) {
             stdout.println("----->")
-            stdout.println("> Searching for: ${Redirector.original_host}:${Redirector.original_port}/${Redirector.original_protocol}")
-            stdout.println("> Incoming request to: ${messageInfo.httpService.host}:${messageInfo.httpService.port.toString()}/${messageInfo.httpService.protocol}")
+            stdout.println("> Searching for: ${Redirector.original()}")
+            stdout.println("> Incoming request to: ${current}")
             if (messageInfo.httpService.host == Redirector.original_host
                     && messageInfo.httpService.port == Redirector.original_port.toIntOrNull()
                     && (messageInfo.httpService.protocol == Redirector.original_protocol)
@@ -185,14 +272,14 @@ class HttpListener(val callbacks: IBurpExtenderCallbacks) : IHttpListener {
                         Redirector.replacement_protocol
                 )
                 stdout.println(
-                        "> Target changed from ${Redirector.original_host}:${Redirector.original_port}/${Redirector.original_protocol} to ${Redirector.replacement_host}:${Redirector.replacement_port}/${Redirector.replacement_protocol}"
+                        "> Target changed from ${Redirector.original()} to ${Redirector.replacement()}"
                 )
             } else {
-                stdout.println("> Target not changed to ${Redirector.replacement_host}:${Redirector.replacement_port}/${Redirector.replacement_protocol}")
+                stdout.println("> Target not changed to ${Redirector.replacement()}")
             }
         } else {
             stdout.println("<-----")
-            stdout.println("< Incoming response from: ${messageInfo.httpService.host}:${messageInfo.httpService.port.toString()}/${messageInfo.httpService.protocol}")
+            stdout.println("< Incoming response from: ${current}")
         }
     }
 }
