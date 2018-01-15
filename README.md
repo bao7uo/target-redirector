@@ -2,7 +2,7 @@
 [![Language](https://img.shields.io/badge/Lang-Kotlin-blue.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-red.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Target Redirector is a Burp Suite Extension which redirects all Burp requests destined for a chosen target to a different target of your choice. The hostname/IP, port and protocol (HTTPS) can all be configured to an alternative destination. You can choose to leave the HTTP Host header intact or update it if necessary. Other HTTP headers and the body remain unaffected.
+Target Redirector is a Burp Suite Extension which redirects all Burp requests destined for a chosen target to a different target of your choice. The hostname/IP, port and protocol (HTTP/HTTPS) can all be configured to an alternative destination. You can choose to leave the HTTP Host header intact or update it if necessary. Other HTTP headers and the body remain unaffected.
 
 ## Overview
 
@@ -13,7 +13,8 @@ This plugin is useful in various situations where you want to force a particular
 - testing a staging/pre-production environment on a different host and/or port which insists on linking/redirecting you back to the production environment. you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned
 - testing a web application which is protected by third-party DDOS protection/load balancers that present on the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
 - hostname resolving to multiple IP addresses, but you can only test one IP, and you do not want to the "fix" DNS using hosts file or similar
-- browsing the non-SSL version of a site which is hosted as both SSL and non-SSL, but the non-SSL site links you back to the SSL one
+- testing the unencrypted version of a site which is hosted as both TLS/SSL and unencrypted, but the unencrypted site links you back to the SSL one
+- as above, but the other way round. strangely enough I have encountered many web apps which like to downgrade from TLS/SSL to unencrypted
 
 ## Build / Requirements
 
