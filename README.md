@@ -2,17 +2,18 @@
 [![Language](https://img.shields.io/badge/Lang-Kotlin-blue.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-red.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Target Redirector is a Burp Suite Extension which allows you to redirect requests to a particular target by replacing an incorrect target hostname/IP with the intended one. The request HTTP headers and body are unaffected, only the actual connection target itself is replaced.
+Target Redirector is a Burp Suite Extension which redirects all Burp requests destined for a chosen target to a different target of your choice. The hostname/IP, port and protocol (HTTPS) can all be configured to an alternative destination. You can choose to leave the HTTP Host header intact or update it if necessary. Other HTTP headers and the body remain unaffected.
 
 ## Overview
 
 ![Target Redirector screenshot](images/title_screenshot.png)
 
-This plugin is useful in various situations where you want to force a particular target IP or hostname to be used. For example:
+This plugin is useful in various situations where you want to force a particular target hostname/IP and/or port and protocol to be used. For example:
 
-- testing a staging/pre-production environment which is full of references to the production environment. you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned
-- web application is protected by third-party ddos protection/load balancers which serve the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
+- testing a staging/pre-production environment on a different host and/or port which insists on linking/redirecting you back to the production environment. you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned
+- testing a web application which is protected by third-party DDOS protection/load balancers that present on the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
 - hostname resolving to multiple IP addresses, but you can only test one IP, and you do not want to the "fix" DNS using hosts file or similar
+- browsing the non-SSL version of a site which is hosted as both SSL and non-SSL, but the non-SSL site links you back to the SSL one
 
 ## Build / Requirements
 
@@ -34,6 +35,20 @@ To build with the Kotlin Burp API, place the API kt source files in the `src/mai
 
 This extension is simple and intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/port/protocol combination specified in the upper row. If all three connection detail criteria match for a request, the extension will replace the connection criteria with those specified in the lower row. Status updates are logged in the extension's stdout on Burp's Extender tab.
 
+#### Demo
+
+To test the extension, set the upper row hostname to pages.bao7uo.com with port 80 and HTTPS unticked. Set the lower row hostname to bao7uo.github.io with port 443 and HTTPS ticked. Leave the hostname option unticked, and click on the button to Activate redirection.
+
+Then Proxy a browser through Burp to page http://pages.bao7uo.com/target-redirector_test.html
+
+A check of the log in Burp extender's stdout for Target Redirector should show that the redirections are taking place, as shown in the screenshot below.
+
+![Target Redirector screenshot](images/log_screenshot.png)
+
+A packet capture will confirm this is the case.
+
+![Target Redirector screenshot](images/cap_screenshot.png)
+
 ## Target Redirector Roadmap
 
 This project is still under development.
@@ -51,7 +66,7 @@ This project is still under development.
 - [ ] Match all/Regex matching for search term
 - [ ] Multiple search terms/redirections
 - [ ] Save settings
-- [ ] Session handling actions
+- [ ] Session handling actions / Burp tool scope
 - [ ] History, monitoring, logging
 
 ## Contribute
