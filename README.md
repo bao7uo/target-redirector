@@ -32,7 +32,7 @@ To build with the Kotlin Burp API, place the API kt source files in the `src/mai
 
 ## Usage
 
-This extension is simple and intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/IP specified in the left-hand textbox. If this hostname/IP is found, the extension will replace it with the hostname/IP specified in the right-hand textbox. Status updates are logged in the extension's stdout on Burp's Extender tab.
+This extension is simple and intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/port/protocol combination specified in the upper row. If all three connection detail criteria match for a request, the extension will replace the connection criteria with those specified in the lower row. Status updates are logged in the extension's stdout on Burp's Extender tab.
 
 ## Target Redirector Roadmap
 
@@ -40,15 +40,17 @@ This project is still under development.
 
 #### Potential future improvements:
 - Improve UI
-- More exception handling
 - Source code optimisation
 
 #### Potential future features:
 - [x] Hostname resolution for invalid hostnames
 - [x] Replacing port as well as hostname
-- [ ] Host header
+- [x] Default host header
+- [ ] Custom host headers
+- [ ] Comment/highlight redirected requests 
 - [ ] Match all/Regex matching for search term
 - [ ] Multiple search terms/redirections
+- [ ] Save settings
 - [ ] Session handling actions
 - [ ] History, monitoring, logging
 
