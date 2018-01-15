@@ -38,84 +38,51 @@ import javax.swing.JCheckBox
 import javax.swing.JOptionPane
 
 
-class HttpListener(val cb: IBurpExtenderCallbacks, val redirector: Redirector) : IHttpListener {
+class Redirector(val cb: IBurpExtenderCallbacks, val data_source: UI, val original: Map<String, String>, val replacement: Map<String, String>) {
 
-    override fun processHttpMessage(
-            toolFlag: Int,
-            messageIsRequest: Boolean,
-            messageInfo: IHttpRequestResponse
-    ) {
-        redirector.process_redirect(messageIsRequest, messageInfo)
+    companion object {
+        var instances = arrayListOf<Redirector>()
+
+        fun kill_instance(instance: Redirector) {
+            instances.remove(instance)
+        }
+
+        fun get_instance(cb: IBurpExtenderCallbacks, data_source: UI, original_data: Map<String, String>, replacement_data: Map<String, String>) : Boolean {
+            if (instances.isEmpty()) {
+                instances.add(Redirector(cb, data_source, original_data, replacement_data))
+                cb.printOutput("Added new redirector #" + instances.size.toString())
+            }
+            
+            var instance = instances[0]
+
+            var _active = instance.toggle()
+            if (!_active) {
+                Redirector.kill_instance(instance)
+            }
+            return _active
+        }
     }
-}
-
-
-class Redirector(val cb: IBurpExtenderCallbacks) {
-
-    var listener = HttpListener(cb, this)
 
     var active = false
-        
-    lateinit var original: Map<String, String>
-    lateinit var replacement: Map<String, String>
+
+    fun notification(text: String) {
+        JOptionPane.showMessageDialog(null, text, "Burp / Target Redirector", JOptionPane.WARNING_MESSAGE)
+        cb.printOutput(text) 
+    }
 
     var json_backup = ""
+
+    fun restore_json() {
+        if (json_backup != "") {
+            cb.loadConfigFromJson(json_backup)
+            json_backup = ""        
+        }
+    }
 
     fun original_url() = "${original["protocol"]}://${original["host"]}:${original["port"]}"
     fun replacement_url() = "${replacement["protocol"]}://${replacement["host"]}:${replacement["port"]}"
 
-    fun process_redirect(messageIsRequest: Boolean, messageInfo: IHttpRequestResponse) {
-        val current = "${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port.toString()}"
-
-        if (!active) {return}
-
-        if (messageIsRequest) {
-            cb.printOutput("----->")
-            cb.printOutput("> Searching for: ${original_url()}")
-            cb.printOutput("> Incoming request to: ${current}")
-            if (messageInfo.httpService.host == original["host"]
-                    && messageInfo.httpService.port == original["port"]?.toIntOrNull()
-                    && (messageInfo.httpService.protocol == original["protocol"])
-                    ) {
-                messageInfo.httpService = cb.helpers.buildHttpService(
-                        replacement["host"],
-                        replacement["port"]!!.toInt(),
-                        replacement["protocol"]
-                )
-                cb.printOutput(
-                        "> Target changed from ${original_url()} to ${replacement_url()}"
-                )
-            } else {
-                cb.printOutput("> Target not changed to ${replacement_url()}")
-            }
-        } else {
-            cb.printOutput("<-----")
-            cb.printOutput("< Incoming response from: ${current}")
-        }        
-    }
-
-    fun toggle(data_source: UI, mainpanel: JPanel, original_data: Map<String, String>, replacement_data: Map<String, String>) {
-        if (active) {
-            stop(data_source)
-        } else  update(data_source, mainpanel, original_data, replacement_data)
-    }
-
-    fun stop(data_source: UI) {
-
-        cb.removeHttpListener(listener)
-        active = false
-        data_source.toggle_active(false)
-
-        if (json_backup != "") {
-            cb.loadConfigFromJson(json_backup)
-            json_backup = ""
-        }
-    }
-
-    fun update(data_source: UI, mainpanel: JPanel, original_data: Map<String, String>, replacement_data: Map<String, String>) {
-
-        original = original_data
-        replacement = replacement_data
+    fun activate(): Boolean {
 
         fun getbyname(name: String): Boolean {
             try {
@@ -126,11 +93,6 @@ class Redirector(val cb: IBurpExtenderCallbacks) {
                 cb.printOutput("Hostname/IP \"${name}\" appears to be invalid.")
                 return false
             }
-        }
-
-        fun notification(text: String) {
-            JOptionPane.showMessageDialog(mainpanel, text, "Burp / Target Redirector", JOptionPane.WARNING_MESSAGE)
-            cb.printOutput(text) 
         }
 
         if (
@@ -164,24 +126,86 @@ class Redirector(val cb: IBurpExtenderCallbacks) {
                     data_source.toggle_dns_correction(false)
                 }
 
-                notification(
-                    "Redirection Activated.\nTarget Redirector is now\nredirecting requests for:\n${original_url()}\nto:\n${replacement_url()}"
-                )
+                return true
 
-                cb.registerHttpListener(listener)
-                active = true
-                data_source.toggle_active(true)
         } else {
-                notification("Invalid hostname and/or port settings.")
+                return false
         }
+    }
+
+    fun process_redirect(messageInfo: IHttpRequestResponse) {
+
+        cb.printOutput("> Matching against URL: ${original_url()}")
+        
+        if (messageInfo.httpService.host == original["host"]
+            && messageInfo.httpService.port == original["port"]?.toIntOrNull()
+            && (messageInfo.httpService.protocol == original["protocol"])
+            ) {
+                messageInfo.httpService = cb.helpers.buildHttpService(
+                    replacement["host"],
+                    replacement["port"]!!.toInt(),
+                    replacement["protocol"]
+                )
+                cb.printOutput(
+                    "> Target changed from ${original_url()} to ${replacement_url()}"
+                )
+            } else {
+                cb.printOutput("> Target not changed to ${replacement_url()}")
+            }
+    }
+
+    inner class HttpListener() : IHttpListener {
+
+        fun toggle_registration() {
+            if (active) {
+                cb.registerHttpListener(this)
+            } else {
+                cb.removeHttpListener(this)
+            }
+        }
+
+        override fun processHttpMessage(
+            toolFlag: Int,
+            messageIsRequest: Boolean,
+            messageInfo: IHttpRequestResponse) {
+            if (!active) { return }
+
+            val current_url = "${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port.toString()}"
+
+            if (messageIsRequest) {
+                cb.printOutput("----->")
+                cb.printOutput("> Incoming request to: ${current_url}")
+                process_redirect(messageInfo)
+            }
+            else {
+                cb.printOutput("<-----")
+                cb.printOutput("< Incoming response from: ${current_url}")
+            }
+        }
+    }
+
+    var listener = HttpListener()
+
+    fun toggle(): Boolean {
+        if (active) {
+            restore_json()
+            active = false
+        } else {
+            active = if (activate()) true else false
+            if (active) notification("Redirection Activated.\nTarget Redirector is now\nredirecting requests for:\n${original_url()}\nto:\n${replacement_url()}")
+            else notification("Invalid hostname and/or port settings.")
+        }
+        listener.toggle_registration()
+        return active
     }
 }
 
-
-class UI(val cb: IBurpExtenderCallbacks, val redirector: Redirector) : ITab {
+class UI(val cb: IBurpExtenderCallbacks) : ITab {
 
     override public fun getTabCaption() = "Target Redirector"
     override public fun getUiComponent() = mainpanel
+
+    lateinit var redirector : Redirector
 
     val mainpanel = JPanel()
     val innerpanel = JPanel()
@@ -228,8 +252,8 @@ class UI(val cb: IBurpExtenderCallbacks, val redirector: Redirector) : ITab {
 
     fun toggle_active(active: Boolean) {
         button.text = if (active) "Remove redirection" else "Activate redirection"
-        redirect_panel_original.toggle_lock(!active)
-        redirect_panel_replacement.toggle_lock(!active)
+        redirect_panel_original.toggle_lock(active.not())
+        redirect_panel_replacement.toggle_lock(active.not())
         if (!active) { cbox_dns_correction.setSelected(false) }
     }
 
@@ -244,10 +268,19 @@ class UI(val cb: IBurpExtenderCallbacks, val redirector: Redirector) : ITab {
     val button = JButton("Activate Redirection")
 
     fun button_pressed() {
-        redirector.toggle(this, mainpanel, redirect_panel_original.get_data(), redirect_panel_replacement.get_data())
+
+        toggle_active(
+            Redirector.get_instance(
+                cb,
+                this,
+                redirect_panel_original.get_data(),
+                redirect_panel_replacement.get_data()
+            )
+        )
     }
     
     init {
+
         mainpanel.layout = BoxLayout(mainpanel, BoxLayout.Y_AXIS)
         mainpanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
 
@@ -259,7 +292,7 @@ class UI(val cb: IBurpExtenderCallbacks, val redirector: Redirector) : ITab {
         innerpanel.add(subpanel_upper)
         innerpanel.add(subpanel_lower)
 
-        subpanel_upper.border = BorderFactory.createTitledBorder("Redirect all Burp connections")
+        subpanel_upper.border = BorderFactory.createTitledBorder("Redirect all Burp Suite connections")
         subpanel_upper.layout = BoxLayout(subpanel_upper, BoxLayout.Y_AXIS)
 
         subpanel_upper.add(redirect_panel_original)
@@ -301,11 +334,10 @@ class BurpExtender : IBurpExtender {
 
     override fun registerExtenderCallbacks(cb: IBurpExtenderCallbacks) {       
         
-        val tab = UI(cb, Redirector(cb))
-
+        val tab = UI(cb)
+        
         cb.setExtensionName("Target Redirector")
         cb.addSuiteTab(tab)
         cb.printOutput("Target Redirector extension loaded")
     }
-
 }

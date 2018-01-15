@@ -47,7 +47,7 @@ This project is still under development.
 - [x] Hostname resolution for invalid hostnames
 - [x] Replacing port as well as hostname
 - [ ] Host header
-- [ ] Regex matching for search term
+- [ ] Match all/Regex matching for search term
 - [ ] Multiple search terms/redirections
 - [ ] Session handling actions
 - [ ] History, monitoring, logging
