@@ -1,9 +1,11 @@
-<img align="right" src="https://avatars0.githubusercontent.com/u/21125224?s=100&v=4">
+<img align="right" src="https://avatars0.githubusercontent.com/u/21125224?s=150&v=4">
 
 # Target Redirector - A Burp Suite Extension
 [![BApp Store](https://img.shields.io/badge/BApp-Published-orange.svg)](https://portswigger.net/bappstore/d938ed20acbe4cd9889aa06bd23ba7e1)
 [![Language](https://img.shields.io/badge/Lang-Kotlin-blue.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://opensource.org/licenses/Apache-2.0)
+
+#### Redirects all Burp requests, not just those going via the proxy
 
 Target Redirector is a Burp Suite Extension written in Kotlin, which redirects all Burp requests destined for a chosen target to a different target of your choice. The hostname/IP, port and protocol (HTTP/HTTPS) can all be configured to an alternative destination. You can choose to leave the HTTP Host header intact or update it if necessary. Other HTTP headers and the body remain unaffected.
 
