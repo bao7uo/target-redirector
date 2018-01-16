@@ -1,1 +1,12 @@
-TODO
+<p>This extension allows you to redirect requests to a particular target by replacing an
+    incorrect target hostname/IP with the intended one. The <i>Host</i> header can optionally also be updated.</p>
+
+<p>The extension is useful in various situations where you want to force a particular target IP or hostname to be used. For example:</p>
+
+<ul>
+    <li>Testing a staging/pre-production environment which is full of references to the production environment.
+    You can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned.</li>
+    <li>Applications that are protected by third-party DDoS protection/load balancers which serve the public URL. The third-party servers are not in scope so cannot be tested.
+    A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application.</li>
+    <li>Hostname resolving to multiple IP addresses, but you can only test one IP, and you do not want to the "fix" DNS using hosts file or similar.</li>
+</ul>
