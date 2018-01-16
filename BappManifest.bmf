@@ -1,12 +1,13 @@
 Uuid: d938ed20acbe4cd9889aa06bd23ba7e1
 ExtensionType: 1
-Name: target-redirector
+Name: Target Redirector
 RepoName: target-redirector
-ScreenVersion: TODO
+ScreenVersion: 1.0
 SerialVersion: 0
 MinPlatformVersion: 0
 ProOnly: False
 Author: Paul Taylor, Foregenix Ltd
-ShortDescription: TODO
-EntryPoint: build/libs/target-redirector-all.jar
-BuildCommand: gradle fatJar
+ShortDescription: Redirect requests to a new target, to cope with moved apps.
+EntryPoint: target-redirector.jar
+BuildCommand: ./build
+
