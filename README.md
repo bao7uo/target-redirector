@@ -1,36 +1,54 @@
-# Target Redirector
+# Target Redirector - A Burp Suite Extension
 [![Language](https://img.shields.io/badge/Lang-Kotlin-blue.svg)](https://kotlinlang.org)
 [![License](https://img.shields.io/badge/License-Apache%202.0-red.svg)](https://opensource.org/licenses/Apache-2.0)
 
-Target Redirector is a Burp Suite Extension which allows you to redirect requests to a particular target by replacing an incorrect target hostname/IP with the intended one. The request HTTP headers and body are unaffected, only the actual connection target itself is replaced.
+Target Redirector is a Burp Suite Extension which redirects all Burp requests destined for a chosen target to a different target of your choice. The hostname/IP, port and protocol (HTTP/HTTPS) can all be configured to an alternative destination. You can choose to leave the HTTP Host header intact or update it if necessary. Other HTTP headers and the body remain unaffected.
 
 ## Overview
 
-![Target Redirector screenshot](https://github.com/bao7uo/TargetRedirector/raw/master/images/title_screenshot.png)
+![Target Redirector screenshot](images/title_screenshot.png)
 
-This plugin is useful in various situations where you want to force a particular target IP or hostname to be used. For example:
+This plugin is useful in various situations where you want to force a particular target hostname/IP and/or port and protocol to be used. For example:
 
-- testing a staging/pre-production environment which is full of references to the production environment. you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned
-- web application is protected by third-party ddos protection/load balancers which serve the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
+- testing a staging/pre-production environment on a different host and/or port which insists on linking/redirecting you back to the production environment. you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned
+- testing a web application which is protected by third-party DDOS protection/load balancers that present on the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
 - hostname resolving to multiple IP addresses, but you can only test one IP, and you do not want to the "fix" DNS using hosts file or similar
+- testing the unencrypted version of a site which is hosted as both TLS/SSL and unencrypted, but the unencrypted site links you back to the SSL one
+- as above, but the other way round. strangely enough I have encountered many web apps which like to downgrade from TLS/SSL to unencrypted
 
-## Requirements
+## Build / Requirements
 
-This project is written entirely in Kotlin, including the Burp API, and requires Kotlin compiler (tested with kotlinc-jvm 1.2.10) to build.
+This project is written in Kotlin, although is currently built with the regular Java Burp API. Building from source requires the Kotlin compiler (tested with kotlinc-jvm 1.2.10).
 
-See the following page from my other repo which has further details about the Burp API and Kotlin.
+To build, use the following command which has been tested successfully on both Windows and Linux.
+
+- `kotlinc -classpath burp-extender-api-1.7.22.jar src/main/kotlin/target-redirector.kt -include-runtime -d target-redirector.jar`
+
+The project can be built against a Kotlin version of the Burp API. See the following page from my other repo which has further details about the Burp API and Kotlin.
 
 - https://github.com/bao7uo/burp-extender-api-kotlin/blob/master/README.md
 
-## Build
+To build with the Kotlin Burp API, place the API kt source files in the `src/main/kotlin/burp directory` and build with the following command.
 
-Use the following command which has been tested successfully on both Windows and Linux.
-
-`kotlinc src/main/kotlin/burp/*.kt src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar`
+- `kotlinc src/main/kotlin/burp/*.kt src/main/kotlin/target-redirector.kt -include-runtime -d target-redirector.jar`
 
 ## Usage
 
-This extension is simple and intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/IP specified in the left-hand textbox. If this hostname/IP is found, the extension will replace it with the hostname/IP specified in the right-hand textbox. Status updates are logged in the extension's stdout on Burp's Extender tab.
+This extension is simple and intuitive. It will search ALL requests made by Burp or proxied by Burp for the hostname/port/protocol combination specified in the upper row. If all three connection detail criteria match for a request, the extension will replace the connection criteria with those specified in the lower row. Status updates are logged in the extension's stdout on Burp's Extender tab.
+
+#### Demo
+
+To test the extension, set the upper row hostname to pages.bao7uo.com with port 80 and HTTPS unticked. Set the lower row hostname to bao7uo.github.io with port 443 and HTTPS ticked. Leave the hostname option unticked, and click on the button to Activate redirection.
+
+Then Proxy a browser through Burp to page http://pages.bao7uo.com/target-redirector_test.html
+
+A check of the log in Burp extender's stdout for Target Redirector should show that the redirections are taking place, as shown in the screenshot below.
+
+![Target Redirector screenshot](images/log_screenshot.png)
+
+A packet capture will confirm this is the case.
+
+![Target Redirector screenshot](images/cap_screenshot.png)
 
 ## Target Redirector Roadmap
 
@@ -38,13 +56,19 @@ This project is still under development.
 
 #### Potential future improvements:
 - Improve UI
-- Exception handling
+- Source code optimisation
 
 #### Potential future features:
-- Regex matching for search term
-- Replacing port as well as hostname
-- Create session handling actions so that multiple search terms can be used with multiple session handling rules
-- Remember/clear history
+- [x] Hostname resolution for invalid hostnames
+- [x] Replacing port as well as hostname
+- [x] Default host header
+- [ ] Custom host headers
+- [ ] Comment/highlight redirected requests 
+- [ ] Match all/Regex matching for search term
+- [ ] Multiple search terms/redirections
+- [ ] Save settings
+- [ ] Session handling actions / Burp tool scope
+- [ ] History, monitoring, logging
 
 ## Contribute
 Contributions, feedback and ideas will be appreciated.

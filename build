@@ -1,1 +1,1 @@
-kotlinc -classpath burp-extender-api-1.7.22.jar src/main/kotlin/TargetRedirector.kt -include-runtime -d TargetRedirector.jar
+kotlinc -classpath burp-extender-api-1.7.22.jar src/main/kotlin/target-redirector.kt -include-runtime -d target-redirector.jar
