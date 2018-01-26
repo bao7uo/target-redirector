@@ -116,22 +116,39 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
         }
     }
 
+    var header_hostname = replacement["host"]
     var active = false
+    var suppress_popup = false
+    var redirector_id = "Redirector#" + id
 
-    fun notification(text: String, popup: Boolean = false) {
-        view.notification(text, "Redirector#" + id, popup)
+    fun fetch_input(text: String, item: String?) = view.fetch_input(
+                                                    text,
+                                                    item,
+                                                    redirector_id
+                                                )
+
+    fun notification(text: String, popup: Boolean = false, suppress_next: Boolean = false) {
+        var _popup = false
+
+        if (popup && suppress_popup){
+            suppress_popup = false
+        } else _popup = popup
+
+        if (suppress_next) suppress_popup = true
+
+        view.notification(text, redirector_id, _popup)
     }
 
     fun original_url() = "${original["protocol"]}://${original["host"]}:${original["port"]}"
     fun replacement_url() = "${replacement["protocol"]}://${replacement["host"]}:${replacement["port"]}"
 
-    fun getbyname(name: String?, popup_on_error: Boolean = false): Boolean {
+    fun getbyname(name: String?, popup_on_error: Boolean = false, suppress_next: Boolean = false): Boolean {
         try {
             InetAddress.getByName(name)
             return true
         }
         catch (UnknownHostException: Exception) {
-            notification("Hostname/IP \"${name}\" appears to be invalid.", popup_on_error)
+            notification("Hostname/IP \"${name}\" appears to be invalid.", popup_on_error, suppress_next)
             return false
         }
     }
@@ -161,9 +178,20 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
             original["port"]?.toIntOrNull() != null &&
             !replacement["host"].isNullOrBlank() &&
             replacement["port"]?.toIntOrNull() != null &&
-            getbyname(replacement["host"], true)
+            getbyname(replacement["host"], true, true)
             ) {
                 toggle_dns_correction()
+                if (host_header) {
+                    var fetch_result = fetch_input(
+                                "Enter the value to replace HTTP host header with",
+                                replacement["host"]
+                            )
+                    header_hostname = if (fetch_result.isEmpty()) replacement["host"] else fetch_result
+                    notification(
+                        "Replacing HTTP host header with: " + header_hostname!!,
+                        if (fetch_result.isEmpty()) true else false
+                    )
+                }
                 listener.toggle_registration()
                 return true
         } else {
@@ -193,7 +221,7 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
 
             var old_header_set = false
             var old_host: String?
-            var new_host = replacement["host"]
+            var new_host = header_hostname
             var new_header = "Host: " + new_host
 
             var new_headers = mutableListOf<String>()
@@ -292,7 +320,7 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
         } else {
             if (activate()) {
                 active = true
-                notification("Redirection Activated for:\n${original_url()}\nto:\n${replacement_url()}", true)
+                notification("Redirection Activated for:\n${original_url()}\nto:\n${replacement_url()}", false)
             } else {
                 active = false
                 notification("Invalid hostname and/or port settings.", true)
@@ -383,19 +411,45 @@ class UI() : ITab {
         )
     }
     
-    fun popup(text: String) {
-        JOptionPane.showMessageDialog(null, text, "Burp / Target Redirector", JOptionPane.WARNING_MESSAGE)
-    }
+    fun popup_input(text: String, item: String?) = JOptionPane.showInputDialog(
+                                                    mainpanel,
+                                                    text,
+                                                    "Burp / Target Redirector",
+                                                    JOptionPane.PLAIN_MESSAGE,
+                                                    null,
+                                                    null,
+                                                    item
+                                                )
 
-    fun log(text: String, source: String) {
-        BurpExtender.cb.printOutput("[" + source + "] " + text.replace("\n", " "))
+    fun popup_notice(text: String) = JOptionPane.showMessageDialog(
+                                        mainpanel,
+                                        text,
+                                        "Burp / Target Redirector",
+                                        JOptionPane.WARNING_MESSAGE
+                                    )
+
+    fun log(text: String, source: String) = BurpExtender.cb.printOutput(
+                                                "[" + source + "] " + text.replace("\n", " ")
+                                            )
+
+    fun fetch_input(text: String, item: String?, source: String) : String
+     {
+        var result = popup_input(text, item)
+        var log_result : String
+
+        if (result == null) {
+            result = ""
+            log_result = "<CANCELLED>"
+        } else if (result == "") {
+            log_result = "<EMPTY>"
+        } else log_result = result.toString()
+
+        log(text + ": " + log_result, source)
+        return result.toString()
     }
 
     fun notification(text: String, source: String, popup: Boolean = false) {
-        if (popup) {
-            popup(text)
-        }
-
+        if (popup) popup_notice(text)
         log(text, source)
     }
 

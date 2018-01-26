@@ -67,7 +67,7 @@ This project is still under development.
 - [x] Hostname resolution for invalid hostnames
 - [x] Replacing port as well as hostname
 - [x] Default host header
-- [ ] Custom host headers
+- [x] Custom host headers
 - [ ] Comment/highlight redirected requests 
 - [ ] Match all/Regex matching for search term
 - [ ] Multiple search terms/redirections
