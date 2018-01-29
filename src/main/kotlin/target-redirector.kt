@@ -38,82 +38,100 @@ import javax.swing.JCheckBox
 import javax.swing.JOptionPane
 
 
-class Dns_Json() {
-
-    companion object {
-
-        var backup = ""
-        var host_list = arrayListOf<String?>()
-
-        fun add(host: String?) {
-
-            var config = BurpExtender.cb.saveConfigAsJson(
-                "project_options.connections.hostname_resolution"
-            )
-
-            host_list.add(host)
-
-            if (backup == "") {               
-                backup = config
-            } 
-
-            var snippet = "{\"enabled\":true,\"hostname\":\"" +
-                                host +
-                                "\",\"ip_address\":\"127.0.0.1\"}" +
-                                if (config.indexOf("ip_address") >= 0) "," else ""
-            config = config.substring(0, 85) + snippet + config.substring(85, config.length)
-            BurpExtender.cb.loadConfigFromJson(config)
-        }
-
-        fun remove(host: String? = "") {
-
-            if (backup != "") {
-                BurpExtender.cb.loadConfigFromJson(backup)
-            }
-            if (host != "") {
-                host_list.remove(host)
-                for (listed_host in host_list) {
-                    add(listed_host)
-                }
-            }
-        }
-    }    
-}
-
-
 class Redirector(val id: Int, val view: UI, val host_header: Boolean, val original: Map<String, String?>, val replacement: Map<String, String?>) {
 
     companion object {
 
         var instances = mutableListOf<Redirector>()
+        lateinit var view: UI
 
-        fun add_instance(view: UI, host_header: Boolean, original_data: Map<String, String?>, replacement_data: Map<String, String?>) {
+        fun notification(message: String) {
+            view.notification(message, "Redirector")
+        }
+
+        fun add_instance(host_header: Boolean, original_data: Map<String, String?>, replacement_data: Map<String, String?>) {
             val id = instances.size
             instances.add(Redirector(id, view, host_header, original_data, replacement_data))
-            view.notification("Initialising new redirector #" + id + " (total " + instances.size + ")", "Redirector")
+            notification("Initialising new redirector #" + id + " (total " + instances.size + ")")
         }
 
-        fun remove_instance(view: UI, id: Int) {
+        fun remove_instance(id: Int) {
             instances.removeAt(id)
-            view.notification("Removed redirector #" + id + " (new total " + instances.size + ")", "Redirector")
+            notification("Removed redirector #" + id + " (new total " + instances.size + ")")
         }
 
-        fun instance_add_or_remove(view: UI, host_header: Boolean, original_data: Map<String, String?>, replacement_data: Map<String, String?>) : Int {
+        fun instance_add_or_remove(view_arg: UI, host_header: Boolean, original_data: Map<String, String?>, replacement_data: Map<String, String?>) : Int {
+
+            view = view_arg
 
             if (instances.isEmpty()) {
-                add_instance(view, host_header, original_data, replacement_data)
+                add_instance(host_header, original_data, replacement_data)
             }
 
             val instance_id = instances.size - 1
             val instance = instances[instance_id]
-            
+            var result: Int
+
             if (!instance.toggle()) {
-                Redirector.remove_instance(view, instance_id)
-                return -1
+                Redirector.remove_instance(instance_id)
+                result = -1
             } else {
-                return instance_id
+                result = instance_id
+            }          
+            
+            listener.toggle_registration()
+            return result
+        }
+
+        class HttpListener() : IHttpListener {
+
+            var registered = false
+
+            fun deregister() {
+                BurpExtender.cb.removeHttpListener(this)
+                notification("Listener removed")
+                registered = false
+            }
+
+            fun register() {
+                BurpExtender.cb.registerHttpListener(this)
+                registered = true
+                notification("Listener enabled")
+            }
+
+            fun toggle_registration() {
+                when {
+                    instances.isEmpty()    && !registered       -> return
+                    instances.isEmpty() /* && registered */     -> deregister()   
+                    registered  /* && !instances.isEmpty() */   -> return         
+                    !registered /* && !instances.isEmpty() */   -> register()
+                }
+            }
+
+            override fun processHttpMessage(
+                toolFlag: Int,
+                messageIsRequest: Boolean,
+                messageInfo: IHttpRequestResponse) {
+                if (instances.isEmpty() || !registered) { return }
+
+                val current_url = "${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port}"
+
+                if (messageIsRequest) {
+                    notification("----->")
+                    notification("> Incoming request to: ${current_url}")
+                    for (instance in instances) {
+                        if (instance.active) instance.perform_redirect(messageInfo)
+                    }
+                }
+                else {
+                    notification("<-----")
+                    notification("< Incoming response from: ${current_url}")
+                }
             }
         }
+
+        var listener = HttpListener()
+
     }
 
     var header_hostname = replacement["host"]
@@ -156,14 +174,14 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
     fun toggle_dns_correction() {
 
         if (active) {
-            Dns_Json.remove(original["host"])
+            if (original["host_regex"] == "0") BurpExtender.Dns_Json.remove(original["host"])
             return
-        } else if (!getbyname(original["host"], false)) {
+        } else if (original["host_regex"] == "0" && !getbyname(original["host"], false)) {
             notification("Hostname/IP \"${original["host"]}\" appears to be invalid.\n\n" +
                 "An entry will be added to\nProject options / Hostname Resolution\n" +
                 "to allow invalid hostname redirection.", true)
 
-            Dns_Json.add(original["host"])
+            BurpExtender.Dns_Json.add(original["host"])
 
             view.toggle_dns_correction(true)
         } else {
@@ -175,7 +193,8 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
 
         if (
             !original["host"].isNullOrBlank() &&
-            original["port"]?.toIntOrNull() != null &&
+            !original["port"].isNullOrBlank() &&
+            (original["port"]?.toIntOrNull() != null || original["port_regex"] == "1") &&
             !replacement["host"].isNullOrBlank() &&
             replacement["port"]?.toIntOrNull() != null &&
             getbyname(replacement["host"], true, true)
@@ -192,130 +211,102 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
                         if (fetch_result.isEmpty()) true else false
                     )
                 }
-                listener.toggle_registration()
                 return true
         } else {
                 return false
         }
     }
 
-    inner class HttpListener() : IHttpListener {
+    fun host_header_set(messageInfo: IHttpRequestResponse){
 
-        var registered = false
+        val host_regex ="^(?i)(Host:)( {0,1})(.*)$".toRegex()
 
-        fun toggle_registration() {
-            if (registered) {
-                BurpExtender.cb.removeHttpListener(this)
-                notification("Listener removed")
-                registered = false
+        var old_header_set = false
+        var old_host: String?
+        var new_host = header_hostname
+        var new_header = "Host: " + new_host
+
+        var new_headers = mutableListOf<String>()
+
+        var requestInfo = BurpExtender.cb.helpers.analyzeRequest(messageInfo)
+
+        for (old_header in requestInfo.headers) {
+            
+            if (old_header_set) {
+                new_headers.add(old_header)
+                continue
             } else {
-                BurpExtender.cb.registerHttpListener(this)
-                registered = true
-                notification("Listener enabled")
-            }
-        }
-
-        fun host_header_set(messageInfo: IHttpRequestResponse){
-
-            val host_regex ="^(?i)(Host:)( {0,1})(.*)$".toRegex()
-
-            var old_header_set = false
-            var old_host: String?
-            var new_host = header_hostname
-            var new_header = "Host: " + new_host
-
-            var new_headers = mutableListOf<String>()
-
-            var requestInfo = BurpExtender.cb.helpers.analyzeRequest(messageInfo)
-
-            for (old_header in requestInfo.headers) {
-                
-                if (old_header_set) {
+                old_host = host_regex.matchEntire(old_header)?.groups?.get(3)?.value
+                if (old_host == null) {
                     new_headers.add(old_header)
                     continue
                 } else {
-                    old_host = host_regex.matchEntire(old_header)?.groups?.get(3)?.value
-                    if (old_host == null) {
-                        new_headers.add(old_header)
-                        continue
+                    if (old_host == new_host) {
+                        notification("Old host header is already set to ${new_host}, no change required")
+                        return
                     } else {
-                        if (old_host == new_host) {
-                            notification("Old host header is already set to ${new_host}, no change required")
-                            return
-                        } else {
-                            notification("> Host header changed from ${old_host} to ${new_host}")
-                            new_headers.add(new_header)
-                            old_header_set = true
-                        }
+                        notification("> Host header changed from ${old_host} to ${new_host}")
+                        new_headers.add(new_header)
+                        old_header_set = true
                     }
                 }
             }
+        }
 
-            if (!old_header_set) {
-                notification("> Existing host header not found. New host header set to ${new_host}")
-                new_headers.add(1, new_header)
-            }
+        if (!old_header_set) {
+            notification("> Existing host header not found. New host header set to ${new_host}")
+            new_headers.add(1, new_header)
+        }
 
-            messageInfo.request = BurpExtender.cb.helpers.buildHttpMessage(
-                                        new_headers,
-                                        messageInfo.request.copyOfRange(
-                                            requestInfo.bodyOffset,
-                                            messageInfo.request.size
-                                        )
+        messageInfo.request = BurpExtender.cb.helpers.buildHttpMessage(
+                                    new_headers,
+                                    messageInfo.request.copyOfRange(
+                                        requestInfo.bodyOffset,
+                                        messageInfo.request.size
                                     )
-        }
-
-        fun perform_redirect(messageInfo: IHttpRequestResponse) {
-
-            notification("> Matching against URL: ${original_url()}")
-        
-            if (messageInfo.httpService.host == original["host"]
-                && messageInfo.httpService.port == original["port"]?.toInt()
-                && (messageInfo.httpService.protocol == original["protocol"])
-                ) {
-                    messageInfo.httpService = BurpExtender.cb.helpers.buildHttpService(
-                        replacement["host"],
-                        replacement["port"]!!.toInt(),
-                        replacement["protocol"]
-                    )
-                    notification(
-                        "> Target changed from ${original_url()} to ${replacement_url()}"
-                    )
-                    if (host_header) {
-                        host_header_set(messageInfo)
-                    }
-                } else {
-                    notification("> Target not changed to ${replacement_url()}")
-                }
-        }
-
-        override fun processHttpMessage(
-            toolFlag: Int,
-            messageIsRequest: Boolean,
-            messageInfo: IHttpRequestResponse) {
-            if (!active || !registered) { return }
-
-            val current_url = "${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port}"
-
-            if (messageIsRequest) {
-                notification("----->")
-                notification("> Incoming request to: ${current_url}")
-                perform_redirect(messageInfo)
-            }
-            else {
-                notification("<-----")
-                notification("< Incoming response from: ${current_url}")
-            }
-        }
+                                )
     }
 
-    var listener = HttpListener()
+    fun perform_redirect(messageInfo: IHttpRequestResponse) {
+
+        notification("> Matching against URL: ${original_url()}")
+    
+        if (
+               (
+                if (original["host_regex"] == "0") (messageInfo.httpService.host == original["host"])
+                else original["host"]?.toRegex()?.matches(messageInfo.httpService.host)!!
+            )
+            && (
+                if (original["port_regex"] == "0") (messageInfo.httpService.port == original["port"]?.toInt())
+                else original["port"]?.toRegex()?.matches(messageInfo.httpService.port.toString())!!
+            )
+            && (
+                messageInfo.httpService.protocol == original["protocol"]
+            )
+        ) {
+
+            notification(
+                "> Target changed from ${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port.toString()} to ${replacement_url()}"
+            )
+            
+            messageInfo.httpService = BurpExtender.cb.helpers.buildHttpService(
+                replacement["host"],
+                replacement["port"]!!.toInt(),
+                replacement["protocol"]
+            )
+
+            if (host_header) {
+                host_header_set(messageInfo)
+            }
+        } else {
+            notification("> Target not changed to ${replacement_url()}")
+        }
+    }
 
     fun toggle(): Boolean {
 
         if (active) {
             toggle_dns_correction()
-            listener.toggle_registration()
             active = false
         } else {
             if (activate()) {
@@ -342,7 +333,7 @@ class UI() : ITab {
     val subpanel_upper = JPanel()
     val subpanel_lower = JPanel()
 
-    class redirect_panel(val host: String) : JPanel() {
+    class redirect_panel(val host: String, val regex: Boolean) : JPanel() {
 
         val label_host = JLabel(host)       
         val text_host = JTextField(20)
@@ -350,7 +341,10 @@ class UI() : ITab {
         val label_port = JLabel("on port")
         val text_port = JTextField(5)
 
-        val cbox_https = JCheckBox("with HTTPS")  
+        val cbox_https = JCheckBox("with HTTPS" + if (regex) "     Regex:" else "")  
+       
+        val cbox_host_regex = JCheckBox("host")
+        val cbox_port_regex = JCheckBox("port")
 
         init {
             add(label_host)
@@ -358,7 +352,13 @@ class UI() : ITab {
             add(label_port)
             add(text_port)
             add(cbox_https)
-            maximumSize = preferredSize
+
+            if (regex) {
+                add(cbox_host_regex)
+                add(cbox_port_regex)
+            } else {
+                // add()
+            }
         }
 
         fun get_data(): Map<String, String> {
@@ -366,6 +366,10 @@ class UI() : ITab {
             data["host"] = text_host.text
             data["port"] = text_port.text
             data["protocol"] = if (cbox_https.isSelected()) "https" else "http"
+            if (regex) {
+                data["host_regex"] = if (cbox_host_regex.isSelected()) "1" else "0"
+                data["port_regex"] = if (cbox_port_regex.isSelected()) "1" else "0"
+            }
             return data
         }
 
@@ -373,11 +377,13 @@ class UI() : ITab {
             text_host.setEditable(locked)
             text_port.setEditable(locked)
             cbox_https.setEnabled(locked)
+            cbox_host_regex.setEnabled(locked)
+            cbox_port_regex.setEnabled(locked)
         }
     }
 
-    val redirect_panel_original = redirect_panel("for host/IP")
-    val redirect_panel_replacement = redirect_panel("to: host/IP")
+    val redirect_panel_original = redirect_panel("for host/IP", true)
+    val redirect_panel_replacement = redirect_panel("to: host/IP", false)
 
     fun toggle_active(active: Boolean) {
         redirect_button.text = if (active) "Remove redirection" else "Activate redirection"
@@ -509,6 +515,49 @@ class BurpExtender : IBurpExtender, IExtensionStateListener {
 
     companion object {
         lateinit var cb: IBurpExtenderCallbacks
+    }
+
+
+    class Dns_Json() {
+
+        companion object {
+
+            var backup = ""
+            var host_list = arrayListOf<String?>()
+
+            fun add(host: String?) {
+
+                var config = cb.saveConfigAsJson(
+                    "project_options.connections.hostname_resolution"
+                )
+
+                host_list.add(host)
+
+                if (backup == "") {               
+                    backup = config
+                } 
+
+                var snippet = "{\"enabled\":true,\"hostname\":\"" +
+                                    host +
+                                    "\",\"ip_address\":\"127.0.0.1\"}" +
+                                    if (config.indexOf("ip_address") >= 0) "," else ""
+                config = config.substring(0, 85) + snippet + config.substring(85, config.length)
+                cb.loadConfigFromJson(config)
+            }
+
+            fun remove(host: String? = "") {
+
+                if (backup != "") {
+                    cb.loadConfigFromJson(backup)
+                }
+                if (host != "") {
+                    host_list.remove(host)
+                    for (listed_host in host_list) {
+                        add(listed_host)
+                    }
+                }
+            }
+        }    
     }
 
     override fun extensionUnloaded() {

@@ -10,7 +10,7 @@
 Target Redirector is a Burp Suite Extension written in Kotlin, which redirects all Burp requests destined for a chosen target to a different target of your choice. The hostname/IP, port and protocol (HTTP/HTTPS) can all be configured to an alternative destination. You can choose to leave the HTTP Host header intact or update it if necessary. Other HTTP headers and the body remain unaffected.
 
 > "the Redirector will save a bit of messing with routing and iptables"
-> * [@ticarpi](https://github.com/ticarpi)
+> -- *[@ticarpi](https://github.com/ticarpi)*
 
 ## Overview
 
@@ -71,8 +71,8 @@ This project is still under development.
 - [x] Replacing port as well as hostname
 - [x] Default host header
 - [x] Custom host headers
+- [x] Regex matching for host/port
 - [ ] Comment/highlight redirected requests 
-- [ ] Match all/Regex matching for search term
 - [ ] Multiple search terms/redirections
 - [ ] Save settings
 - [ ] Session handling actions / Burp tool scope
