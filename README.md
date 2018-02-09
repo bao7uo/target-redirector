@@ -72,6 +72,8 @@ This project is still under development.
 - [x] Default host header
 - [x] Custom host headers
 - [x] Regex matching for host/port
+- [ ] Case sensitivity
+- [ ] Flexible HTTP/HTTPS options
 - [ ] Comment/highlight redirected requests 
 - [ ] Multiple search terms/redirections
 - [ ] Save settings
