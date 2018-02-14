@@ -219,7 +219,7 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
 
     fun host_header_set(messageInfo: IHttpRequestResponse){
 
-        val host_regex ="^(?i)(Host:)( {0,1})(.*)$".toRegex()
+        val host_regex ="^(?i)(Host:)( {0,1})(.*)$".toRegex(RegexOption.IGNORE_CASE)
 
         var old_header_set = false
         var old_host: String?
@@ -273,12 +273,12 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
     
         if (
                (
-                if (original["host_regex"] == "0") (messageInfo.httpService.host == original["host"])
-                else original["host"]?.toRegex()?.matches(messageInfo.httpService.host)!!
+                if (original["host_regex"] == "0") (messageInfo.httpService.host.toLowerCase() == original["host"])
+                else original["host"]?.toRegex(RegexOption.IGNORE_CASE)?.matches(messageInfo.httpService.host)!!
             )
             && (
                 if (original["port_regex"] == "0") (messageInfo.httpService.port == original["port"]?.toInt())
-                else original["port"]?.toRegex()?.matches(messageInfo.httpService.port.toString())!!
+                else original["port"]?.toRegex(RegexOption.IGNORE_CASE)?.matches(messageInfo.httpService.port.toString())!!
             )
             && (
                 messageInfo.httpService.protocol == original["protocol"]
@@ -363,6 +363,7 @@ class UI() : ITab {
 
         fun get_data(): Map<String, String> {
             val data = mutableMapOf<String, String>()
+            if (!cbox_host_regex.isSelected()) text_host.text = text_host.text.toLowerCase()
             data["host"] = text_host.text
             data["port"] = text_port.text
             data["protocol"] = if (cbox_https.isSelected()) "https" else "http"

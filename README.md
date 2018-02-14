@@ -72,7 +72,7 @@ This project is still under development.
 - [x] Default host header
 - [x] Custom host headers
 - [x] Regex matching for host/port
-- [ ] Case sensitivity
+- [x] Case insensitivity of hostname
 - [ ] Flexible HTTP/HTTPS options
 - [ ] Comment/highlight redirected requests 
 - [ ] Multiple search terms/redirections
