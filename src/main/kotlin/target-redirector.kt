@@ -35,12 +35,26 @@ import javax.swing.JLabel
 import javax.swing.JPanel
 import javax.swing.JTextField
 import javax.swing.JCheckBox
+import javax.swing.JComboBox
 import javax.swing.JOptionPane
 
 
-class Redirector(val id: Int, val view: UI, val host_header: Boolean, val original: Map<String, String?>, val replacement: Map<String, String?>) {
+class Redirector(val id: Int, val view: UI, var host_header: Any?, var original: Map<String, Any?>, var replacement: Map<String, Any?>) {
 
     companion object {
+
+        const val HOST_PORT_SPECIFIED = 0
+        const val HOST_PORT_IGNORE = 1
+        const val HOST_PORT_REGEX = 2
+
+        const val PROTO_BOTH_IGNORE = 0
+        const val PROTO_HTTP = 1
+        const val PROTO_HTTPS = 2
+
+        const val HOST_HEADER_IGNORE = 0
+        const val HOST_HEADER_ORIGINAL = 1
+        const val HOST_HEADER_NEW = 2
+        const val HOST_HEADER_SPECIFIED = 3
 
         var instances = mutableListOf<Redirector>()
         lateinit var view: UI
@@ -49,7 +63,7 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
             view.notification(message, "Redirector")
         }
 
-        fun add_instance(host_header: Boolean, original_data: Map<String, String?>, replacement_data: Map<String, String?>) {
+        fun add_instance(host_header: Any?, original_data: Map<String, Any?>, replacement_data: Map<String, Any?>) {
             val id = instances.size
             instances.add(Redirector(id, view, host_header, original_data, replacement_data))
             notification("Initialising new redirector #" + id + " (total " + instances.size + ")")
@@ -60,7 +74,7 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
             notification("Removed redirector #" + id + " (new total " + instances.size + ")")
         }
 
-        fun instance_add_or_remove(view_arg: UI, host_header: Boolean, original_data: Map<String, String?>, replacement_data: Map<String, String?>) : Int {
+        fun instance_add_or_remove(view_arg: UI, host_header: Any?, original_data: Map<String, Any?>, replacement_data: Map<String, Any?>) : Int {
 
             view = view_arg
 
@@ -134,7 +148,6 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
 
     }
 
-    var header_hostname = replacement["host"]
     var active = false
     var suppress_popup = false
     var redirector_id = "Redirector#" + id
@@ -157,8 +170,51 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
         view.notification(text, redirector_id, _popup)
     }
 
-    fun original_url() = "${original["protocol"]}://${original["host"]}:${original["port"]}"
-    fun replacement_url() = "${replacement["protocol"]}://${replacement["host"]}:${replacement["port"]}"
+    var replacement_host = ""
+    var replacement_port = -1
+    var replacement_protocol = ""
+
+    fun original_url(): String {
+        val proto = when (original["protocol"]) {
+                PROTO_BOTH_IGNORE -> "[http,https]"
+                PROTO_HTTP -> "http"
+                PROTO_HTTPS -> "https"
+                else -> "[http,https]"
+        }
+        val host = when (original["host_mode"]) {
+                HOST_PORT_IGNORE -> "[any host/ip]"
+                HOST_PORT_SPECIFIED -> original["host"].toString()
+                HOST_PORT_REGEX -> "[REGEX/${original["host"]}/]"
+                else -> "[any host/ip]"
+        }
+        val port = when (original["port_mode"]) {
+                HOST_PORT_IGNORE -> "[0-65535]"
+                HOST_PORT_SPECIFIED -> original["port"].toString()
+                HOST_PORT_REGEX -> "[REGEX/${original["port"]}/]"
+                else -> "[0-65535]"
+        }
+        return "${proto}://${host}:${port}"
+    }
+
+    fun replacement_url(): String {
+        val proto = when (replacement["protocol"]) {
+                PROTO_BOTH_IGNORE -> "[keep]"
+                PROTO_HTTP -> "http"
+                PROTO_HTTPS -> "https"
+                else -> "[keep]"
+        }
+        val host = when (replacement["host_mode"]) {
+                HOST_PORT_IGNORE -> "[keep]"
+                HOST_PORT_SPECIFIED -> replacement["host"].toString()
+                else -> "[keep]"
+        }
+        val port = when (replacement["port_mode"]) {
+                HOST_PORT_IGNORE -> "[keep]"
+                HOST_PORT_SPECIFIED -> replacement["port"].toString()
+                else -> "[keep]"
+        }
+        return "${proto}://${host}:${port}"
+    }
 
     fun getbyname(name: String?, popup_on_error: Boolean = false, suppress_next: Boolean = false): Boolean {
         try {
@@ -171,17 +227,17 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
         }
     }
 
-    fun toggle_dns_correction() {
+    fun toggle_dns_correction() { // *** DNS correction only applied with specifed hostnames
 
         if (active) {
-            if (original["host_regex"] == "0") BurpExtender.Dns_Json.remove(original["host"])
+            if (original["host_mode"] == HOST_PORT_SPECIFIED) BurpExtender.Dns_Json.remove(original["host"].toString())
             return
-        } else if (original["host_regex"] == "0" && !getbyname(original["host"], false)) {
+        } else if (original["host_mode"] == HOST_PORT_SPECIFIED && !getbyname(original["host"].toString(), false)) {
             notification("Hostname/IP \"${original["host"]}\" appears to be invalid.\n\n" +
                 "An entry will be added to\nProject options / Hostname Resolution\n" +
                 "to allow invalid hostname redirection.", true)
 
-            BurpExtender.Dns_Json.add(original["host"])
+            BurpExtender.Dns_Json.add(original["host"].toString())
 
             view.toggle_dns_correction(true)
         } else {
@@ -189,42 +245,48 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
         }        
     }
 
+    fun host_port_valid(host_port: Map<String, Any?>, field: String): Boolean {
+        return when (host_port["${field}_mode"]) {
+            HOST_PORT_SPECIFIED ->  if (field == "host") !host_port[field].toString().isNullOrBlank()
+                                    else host_port[field].toString().toIntOrNull() != null
+            HOST_PORT_IGNORE -> true
+            HOST_PORT_REGEX -> host_port[field].toString().toRegex().toString() > ""  // *** replace with proper check for valid regex
+            else -> false
+        }
+    }
+
     fun activate(): Boolean {
 
         if (
-            !original["host"].isNullOrBlank() &&
-            !original["port"].isNullOrBlank() &&
-            (original["port"]?.toIntOrNull() != null || original["port_regex"] == "1") &&
-            !replacement["host"].isNullOrBlank() &&
-            replacement["port"]?.toIntOrNull() != null &&
-            getbyname(replacement["host"], true, true)
+            host_port_valid(original, "host") &&
+            host_port_valid(original, "port") &&
+            host_port_valid(replacement, "host") && 
+            host_port_valid(replacement, "port") && 
+            getbyname(replacement["host"].toString(), true, true)
             ) {
                 toggle_dns_correction()
-                if (host_header) {
-                    var fetch_result = fetch_input(
-                                "Enter the value to replace HTTP host header with",
-                                replacement["host"]
-                            )
-                    header_hostname = if (fetch_result.isEmpty()) replacement["host"] else fetch_result
-                    notification(
-                        "Replacing HTTP host header with: " + header_hostname!!,
-                        if (fetch_result.isEmpty()) true else false
-                    )
-                }
                 return true
         } else {
                 return false
         }
     }
 
-    fun host_header_set(messageInfo: IHttpRequestResponse){
+    fun get_new_host_header(hn_old: String, hn_original: String, hn_replacement: String): String {
+        return when (host_header) {
+            HOST_HEADER_IGNORE -> hn_old
+            HOST_HEADER_ORIGINAL -> hn_original
+            HOST_HEADER_NEW -> hn_replacement
+            else -> host_header.toString()
+        }
+    }
+
+    fun host_header_set(messageInfo: IHttpRequestResponse, original_hostname: String){
 
         val host_regex ="^(?i)(Host:)( {0,1})(.*)$".toRegex(RegexOption.IGNORE_CASE)
 
         var old_header_set = false
         var old_host: String?
-        var new_host = header_hostname
-        var new_header = "Host: " + new_host
+        var new_host: String
 
         var new_headers = mutableListOf<String>()
 
@@ -241,21 +303,26 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
                     new_headers.add(old_header)
                     continue
                 } else {
-                    if (old_host == new_host) {
-                        notification("Old host header is already set to ${new_host}, no change required")
-                        return
+                    if (host_header != HOST_HEADER_IGNORE) {
+                        new_host = get_new_host_header(old_host, original_hostname, messageInfo.httpService.host.toLowerCase())
+                        if (old_host == new_host) {
+                            notification("Old host header is already set to ${new_host}, no change required")
+                            return
+                        } else {
+                            notification("> Host header changed from ${old_host} to ${new_host}")
+                            new_headers.add("Host: ${new_host}")
+                            old_header_set = true
+                        }
                     } else {
-                        notification("> Host header changed from ${old_host} to ${new_host}")
-                        new_headers.add(new_header)
-                        old_header_set = true
+                        notification("Old host header is set to ${old_host} and host header is not set to be changed")
+                        return
                     }
                 }
             }
         }
 
         if (!old_header_set) {
-            notification("> Existing host header not found. New host header set to ${new_host}")
-            new_headers.add(1, new_header)
+            notification("> Existing host header not found, maybe HTTP/1.0. No host header added.")
         }
 
         messageInfo.request = BurpExtender.cb.helpers.buildHttpMessage(
@@ -270,34 +337,56 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
     fun perform_redirect(messageInfo: IHttpRequestResponse) {
 
         notification("> Matching against URL: ${original_url()}")
-    
+
         if (
-               (
-                if (original["host_regex"] == "0") (messageInfo.httpService.host.toLowerCase() == original["host"])
-                else original["host"]?.toRegex(RegexOption.IGNORE_CASE)?.matches(messageInfo.httpService.host)!!
-            )
-            && (
-                if (original["port_regex"] == "0") (messageInfo.httpService.port == original["port"]?.toInt())
-                else original["port"]?.toRegex(RegexOption.IGNORE_CASE)?.matches(messageInfo.httpService.port.toString())!!
-            )
-            && (
-                messageInfo.httpService.protocol == original["protocol"]
-            )
+            when (original["host_mode"]) {
+                    HOST_PORT_IGNORE -> true
+                    HOST_PORT_SPECIFIED -> if (messageInfo.httpService.host.toLowerCase() == original["host"].toString()) true else false
+                    HOST_PORT_REGEX -> if (original["host"].toString().toRegex(RegexOption.IGNORE_CASE).matches(messageInfo.httpService.host)) true else false
+                    else -> false
+            }
+            && when (original["port_mode"]) {
+                    HOST_PORT_IGNORE -> true
+                    HOST_PORT_SPECIFIED -> if (messageInfo.httpService.port == original["port"].toString().toInt()) true else false
+                    HOST_PORT_REGEX -> if (original["port"].toString().toRegex(RegexOption.IGNORE_CASE).matches(messageInfo.httpService.port.toString())) true else false
+                    else -> false
+            }
+            && when (original["protocol"]) {
+                    PROTO_BOTH_IGNORE -> true
+                    PROTO_HTTP -> if (messageInfo.httpService.protocol == "http") true else false
+                    PROTO_HTTPS -> if (messageInfo.httpService.protocol == "https") true else false
+                    else -> false
+            }
         ) {
 
+            when (replacement["host_mode"]) {
+                    HOST_PORT_IGNORE -> replacement_host = messageInfo.httpService.host.toLowerCase()
+                    HOST_PORT_SPECIFIED -> replacement_host = replacement["host"].toString()
+            }
+            when (replacement["port_mode"]) {
+                    HOST_PORT_IGNORE -> replacement_port = messageInfo.httpService.port.toString().toInt()
+                    HOST_PORT_SPECIFIED -> replacement_port = replacement["port"].toString().toInt()
+            }
+            when (replacement["protocol"]) {
+                    PROTO_BOTH_IGNORE -> replacement_protocol = messageInfo.httpService.protocol
+                    PROTO_HTTP -> replacement_protocol = "http"
+                    PROTO_HTTPS -> replacement_protocol = "https"
+            }
+
+            val original_hostname = messageInfo.httpService.host.toLowerCase()
+
             notification(
-                "> Target changed from ${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port.toString()} to ${replacement_url()}"
+                "> Target changed from ${messageInfo.httpService.protocol}://${messageInfo.httpService.host}:${messageInfo.httpService.port} to ${replacement_url()}"
             )
             
             messageInfo.httpService = BurpExtender.cb.helpers.buildHttpService(
-                replacement["host"],
-                replacement["port"]!!.toInt(),
-                replacement["protocol"]
+                replacement_host,
+                replacement_port,
+                replacement_protocol
             )
 
-            if (host_header) {
-                host_header_set(messageInfo)
-            }
+            host_header_set(messageInfo, original_hostname)
+            
         } else {
             notification("> Target not changed to ${replacement_url()}")
         }
@@ -321,6 +410,16 @@ class Redirector(val id: Int, val view: UI, val host_header: Boolean, val origin
     }
 }
 
+/*
+
+         *****     *****        ********
+        ******     ******        ******
+        ******     ******        ******
+        ******     ******        ******
+         ******   ******         ******
+          *************          ******
+           ***********          ********
+*/
 
 class UI() : ITab {
 
@@ -330,67 +429,112 @@ class UI() : ITab {
     val mainpanel = JPanel()
     val innerpanel = JPanel()
 
-    val subpanel_upper = JPanel()
-    val subpanel_lower = JPanel()
+    val subpanel = JPanel()
+    val activationpanel = JPanel()
 
-    class redirect_panel(val host: String, val regex: Boolean) : JPanel() {
+    inner class redirect_panel(val host: String, val original: Boolean) : JPanel() {
 
-        val label_host = JLabel(host)       
-        val text_host = JTextField(20)
-
-        val label_port = JLabel("on port")
+        val text_host = JTextField(12)
         val text_port = JTextField(5)
 
-        val cbox_https = JCheckBox("with HTTPS" + if (regex) "     Regex:" else "")  
-       
-        val cbox_host_regex = JCheckBox("host")
-        val cbox_port_regex = JCheckBox("port")
+        val host_array =
+            if (original) arrayOf(
+                "Redirect from hostname/IP:",
+                "Redirect any hostname/IP",
+                "Redirect hostname/IP regex:"
+            ) else arrayOf(
+                "To destination hostname/IP:",
+                "Without changing hostname/IP"
+            )
 
-        init {
-            add(label_host)
-            add(text_host)
-            add(label_port)
-            add(text_port)
-            add(cbox_https)
+        val port_array = 
+            if (original) arrayOf(
+                "specific port:",
+                "redirect any port",
+                "specific port regex:"
+            ) else arrayOf(
+                "redirect to specific port:",
+                "without changing port"
+            )
 
-            if (regex) {
-                add(cbox_host_regex)
-                add(cbox_port_regex)
-            } else {
-                // add()
-            }
+        val protocol_array =
+            if (original) arrayOf(
+                "redirect both HTTP/S",
+                "only redirect HTTP",
+                "only redirect HTTPS"
+            ) else arrayOf(
+                "without changing HTTP/S",
+                "redirect as HTTP",
+                "redirect as HTTPS"
+            )
+
+        val dropdown_host = JComboBox<String>(host_array)
+        val dropdown_port = JComboBox<String>(port_array)
+        val dropdown_proto = JComboBox<String>(protocol_array)
+
+        fun combo_click(selected: Int, textbox: JTextField) {
+            if (selected == Redirector.HOST_PORT_IGNORE) textbox.setVisible(false)
+            else textbox.setVisible(true)
+            textbox.requestFocus()
+            refresh()
         }
 
-        fun get_data(): Map<String, String> {
-            val data = mutableMapOf<String, String>()
-            if (!cbox_host_regex.isSelected()) text_host.text = text_host.text.toLowerCase()
+        init {
+            dropdown_host.addActionListener(object: ActionListener {
+                override fun actionPerformed(e: ActionEvent) {
+                    if (!true && e.actionCommand == "") {}  // hack to remove compiler warning about e argument being unused
+                    combo_click(dropdown_host.selectedIndex, text_host)
+                }
+            })
+            dropdown_port.addActionListener(object: ActionListener {
+                override fun actionPerformed(e: ActionEvent) {
+                    if (!true && e.actionCommand == "") {}  // hack to remove compiler warning about e argument being unused
+                    combo_click(dropdown_port.selectedIndex, text_port)
+                }
+            })
+
+            add(dropdown_host)
+            add(text_host)
+            add(dropdown_port)
+            add(text_port)
+            add(dropdown_proto)
+        }
+
+        fun get_data(): Map<String, Any> {
+
+            val data = mutableMapOf<String, Any>()
+
+            if (dropdown_host.selectedIndex == Redirector.HOST_PORT_SPECIFIED) text_host.text = text_host.text.toLowerCase()
+            else if (dropdown_host.selectedIndex == Redirector.HOST_PORT_IGNORE) text_host.text = ""
+            if (dropdown_port.selectedIndex == Redirector.HOST_PORT_IGNORE) text_port.text = ""
+
             data["host"] = text_host.text
             data["port"] = text_port.text
-            data["protocol"] = if (cbox_https.isSelected()) "https" else "http"
-            if (regex) {
-                data["host_regex"] = if (cbox_host_regex.isSelected()) "1" else "0"
-                data["port_regex"] = if (cbox_port_regex.isSelected()) "1" else "0"
-            }
+            data["protocol"] = dropdown_proto.selectedIndex
+            data["host_mode"] = dropdown_host.selectedIndex
+            data["port_mode"] = dropdown_port.selectedIndex
+
             return data
         }
 
         fun toggle_lock(locked: Boolean) {
             text_host.setEditable(locked)
             text_port.setEditable(locked)
-            cbox_https.setEnabled(locked)
-            cbox_host_regex.setEnabled(locked)
-            cbox_port_regex.setEnabled(locked)
+            dropdown_proto.setEnabled(locked)
+            dropdown_host.setEnabled(locked)
+            dropdown_port.setEnabled(locked)
         }
     }
 
-    val redirect_panel_original = redirect_panel("for host/IP", true)
-    val redirect_panel_replacement = redirect_panel("to: host/IP", false)
+    val redirect_panel_original = redirect_panel("Redirect host/IP:", true)
+    val redirect_panel_replacement = redirect_panel("to destination host/IP:", false)
 
     fun toggle_active(active: Boolean) {
         redirect_button.text = if (active) "Remove redirection" else "Activate redirection"
         redirect_panel_original.toggle_lock(active.not())
         redirect_panel_replacement.toggle_lock(active.not())
-        cbox_hostheader.setEnabled(active.not())
+        dropdown_hostheader.setEnabled(active.not())
+        text_hostheader.setEnabled(active.not())
         if (!active) { cbox_dns_correction.setSelected(false) }
     }
 
@@ -399,7 +543,38 @@ class UI() : ITab {
     }
 
     val redirect_panel_options = JPanel()
-    val cbox_hostheader = JCheckBox("Also replace HTTP host header")
+
+    val dropdown_hostheader = JComboBox(
+            arrayOf(
+                "Without changing HTTP Host header",
+                "Pre-redirection hostname(:port)",
+                "Post-redirection hostname(:port)",
+                "Set custom HTTP host header value:"
+            )
+        )
+
+    val text_hostheader = JTextField(18)
+
+    fun dropdown_hostheader_get_data(): Any = when (dropdown_hostheader.selectedIndex) {
+            Redirector.HOST_HEADER_IGNORE,
+            Redirector.HOST_HEADER_ORIGINAL,
+            Redirector.HOST_HEADER_NEW
+                    -> {
+                        text_hostheader.text = ""
+                        dropdown_hostheader.selectedIndex
+                    }
+            else -> { text_hostheader.text }
+        }
+
+    fun dropdown_hostheader_click() {
+        when (dropdown_hostheader.selectedIndex) {
+            Redirector.HOST_HEADER_SPECIFIED -> text_hostheader.setVisible(true)
+            else -> text_hostheader.setVisible(false)
+        }
+        text_hostheader.requestFocus()
+        refresh()
+    }
+
     val cbox_dns_correction = JCheckBox("Invalid original hostname DNS correction")
 
     val redirect_button = JButton("Activate Redirection")
@@ -408,7 +583,7 @@ class UI() : ITab {
 
         val instance_id = Redirector.instance_add_or_remove(
                 this,
-                cbox_hostheader.isSelected(),
+                dropdown_hostheader_get_data(),
                 redirect_panel_original.get_data(),
                 redirect_panel_replacement.get_data()
             )
@@ -460,48 +635,59 @@ class UI() : ITab {
         log(text, source)
     }
 
+    fun refresh(){
+        mainpanel.validate();
+        mainpanel.repaint();
+        subpanel.validate();
+        subpanel.repaint();
+        innerpanel.validate();
+        innerpanel.repaint();
+        redirect_panel_options.validate();
+        redirect_panel_options.repaint();
+    }
+
     init {
 
-        mainpanel.layout = BoxLayout(mainpanel, BoxLayout.Y_AXIS)
         mainpanel.border = BorderFactory.createEmptyBorder(20, 20, 20, 20)
 
         mainpanel.add(innerpanel)
-        mainpanel.add(Box.createVerticalGlue())
-
+        
+        innerpanel.add(subpanel)
         innerpanel.layout = BoxLayout(innerpanel, BoxLayout.Y_AXIS)
 
-        innerpanel.add(subpanel_upper)
-        innerpanel.add(subpanel_lower)
+        subpanel.border = BorderFactory.createTitledBorder("Redirect Burp Suite connections")
+        subpanel.layout = BoxLayout(subpanel, BoxLayout.Y_AXIS)
 
-        subpanel_upper.border = BorderFactory.createTitledBorder("Redirect all Burp Suite connections")
-        subpanel_upper.layout = BoxLayout(subpanel_upper, BoxLayout.Y_AXIS)
+        subpanel.add(redirect_panel_original)
+        subpanel.add(redirect_panel_replacement)
+        subpanel.add(redirect_panel_options)
+        innerpanel.add(Box.createVerticalGlue())
+        innerpanel.add(activationpanel)
 
-        subpanel_upper.add(redirect_panel_original)
-        subpanel_upper.add(redirect_panel_replacement)
-        subpanel_upper.add(redirect_panel_options)
-
-        redirect_panel_options.add(cbox_hostheader)
+        redirect_panel_options.add(dropdown_hostheader)
+        redirect_panel_options.add(text_hostheader)
         redirect_panel_options.add(cbox_dns_correction)
 
-        cbox_hostheader.setEnabled(true)
+        text_hostheader.setVisible(false)
+
+        dropdown_hostheader.addActionListener(object: ActionListener {
+            override fun actionPerformed(e: ActionEvent) {
+                if (!true && e.actionCommand == "") {}  // hack to remove compiler warning about e argument being unused
+                dropdown_hostheader_click()
+            }
+        })
+
         cbox_dns_correction.setEnabled(false)
 
-        subpanel_lower.layout = BoxLayout(subpanel_lower, BoxLayout.X_AXIS)
+        activationpanel.layout = BoxLayout(activationpanel, BoxLayout.X_AXIS)
 
-        subpanel_lower.add(Box.createHorizontalGlue())
-        subpanel_lower.add(redirect_button)
-        subpanel_lower.add(Box.createVerticalGlue())
-
-        subpanel_upper.maximumSize = subpanel_upper.preferredSize
-        subpanel_lower.maximumSize = subpanel_lower.preferredSize
-        innerpanel.maximumSize = innerpanel.preferredSize
-        mainpanel.maximumSize = mainpanel.preferredSize
+        activationpanel.add(redirect_button)
 
         redirect_button.addActionListener(
                 object : ActionListener {
                     override fun actionPerformed(e: ActionEvent) {
-                        if (!true && e.actionCommand == "") {}  // hack to remove compiler warning
-                        redirect_button_pressed()                        // about e argument being unused
+                        if (!true && e.actionCommand == "") {}  // hack to remove compiler warning about e argument being unused
+                        redirect_button_pressed()
                     }
                 }
         )
@@ -511,6 +697,17 @@ class UI() : ITab {
 
 }
 
+/*
+
+****************************************************************************
+****************************************************************************
+****************************************************************************
+****************************************************************************
+****************************************************************************
+****************************************************************************
+****************************************************************************
+
+*/
 
 class BurpExtender : IBurpExtender, IExtensionStateListener {
 

@@ -67,13 +67,15 @@ This project is still under development.
 - Source code optimisation
 
 #### Potential future features:
-- [x] Hostname resolution for invalid hostnames
-- [x] Replacing port as well as hostname
-- [x] Default host header
-- [x] Custom host headers
-- [x] Regex matching for host/port
-- [x] Case insensitivity of hostname
-- [ ] Flexible HTTP/HTTPS options
+- [x] <s>Hostname resolution for invalid hostnames</s>
+- [x] <s>Replacing port as well as hostname</s>
+- [x] <s>Default host header</s>
+- [x] <s>Custom host headers</s>
+- [x] <s>Regex matching for host/port</s>
+- [x] <s>Case insensitivity of hostname</s>
+- [x] Flexible HTTP/HTTPS options
+- [x] Allow redirecting of any host/port
+- [x] Allow destination host or port to remain unchanged
 - [ ] Comment/highlight redirected requests 
 - [ ] Multiple search terms/redirections
 - [ ] Save settings
