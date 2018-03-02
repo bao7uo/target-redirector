@@ -16,9 +16,14 @@ Target Redirector is a Burp Suite Extension written in Kotlin, which redirects a
 
 ![Target Redirector screenshot](images/title_screenshot.png)
 
-This plugin is useful in various situations where you want to force a particular target hostname/IP and/or port and/or protocol to be used. For example:
+This plugin is useful in various situations where you want to force a particular target hostname/IP and/or port and/or protocol to be used. Features include:
 
 - redirect all (or specific) http connections to https or vice-versa
+- redirect connections destined for any (or specific) host and/or port to a different host and/or port
+- alter host header
+
+Examples of use:
+
 - testing a staging/pre-production environment on a different host and/or port which insists on linking/redirecting you back to the production environment. you can add both environments to scope, and allow the scanner to scan all the referenced pages, but whilst ensuring that only the staging/pre-production targets are scanned
 - testing a web application which is protected by third-party DDOS protection/load balancers that present on the public URL. The third-party servers are not in scope so cannot be tested. A backend target IP/hostname has been provided, but the public URL is referenced all over the target web application
 - hostname resolving to multiple IP addresses, but you can only test one IP, and you do not want to the "fix" DNS using hosts file or similar
